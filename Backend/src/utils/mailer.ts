@@ -51,7 +51,7 @@ export const sendVerificationEmail = async(to: string, token: string)=> {
     };
 
     try {
-        await sgMail.send(msg);
+        await sgMail.send(msg); 
     } catch(err) {
         console.error(err);
         throw new Error("Failed to send Verification Email");
