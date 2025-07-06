@@ -120,7 +120,6 @@ export const createAccount = async(req: Request, res: Response): Promise<void>=>
             });
             return ;
         }
-        cache.del(email); // delete from cache
         
         try { // username is marked as unique field so this will handle the case where multiple users are trying a race for same username
             const newUser = await User.create({ // create new user
@@ -128,6 +127,7 @@ export const createAccount = async(req: Request, res: Response): Promise<void>=>
                 password: hashedPassword, 
                 username: username
             })
+            cache.del(email); // delete the stored hashed password
             cache.del(`lock:${email}`); // delete lock from email after the account is created
     
             // after a successfull signIn keep the user logged in
@@ -178,14 +178,20 @@ export const createAccount = async(req: Request, res: Response): Promise<void>=>
                     success: false,
                     message: "Username Already Taken"
                     });
+                    return ;
                 }
                 else if(err.keyPattern?.email) {
                     res.status(400).json({
-                        sucess: false,
+                        success: false,
                         message: "Email Already Registered"
                     }); 
+                    return ;
                 }
-            }
+            }   
+            res.status(400).json({
+                success: false,
+                message: "User creation failed due to unknown duplicate error"
+            });
             return ;
         }
     } catch(err) {
