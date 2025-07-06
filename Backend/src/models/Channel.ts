@@ -5,6 +5,11 @@ const ChannelSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    type: {
+        type: String,
+        enum: ["open", "college"],
+        required: true
+    },
     members: [{
         type: Types.ObjectId,
         ref: "User"

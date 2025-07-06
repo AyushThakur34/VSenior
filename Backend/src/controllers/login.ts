@@ -4,41 +4,46 @@ import validator from "validator";
 import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
 import RefreshToken from "../models/RefreshToken";
+import { Request, Response } from "express";
 dotenv.config();
 
-export const login = async(req: any, res: any)=> {
+export const login = async(req: Request, res: Response): Promise<void>=> {
     try {
         const {email, password} = req.body; // destructure email and password from req body
         if(!email || !password) { // handle the case if they are missing
-            return res.status(400).json({
+            res.status(400).json({
                 success: false,
                 message: "Email and Password both are required"
             });
+            return ;
         }
 
         if(!validator.isEmail(email)) { // validate email format
-            return res.status(400).json({
+            res.status(400).json({
                 success: false,
                 message: "Enter a Valid Email"
             });
+            return ;
         }
 
         const existingUser = await User.findOne({email: email}); // find existing user
         if(!existingUser) { // handle the case if user does not exist
-            return res.status(400).json({
+            res.status(400).json({
                 success: false,
                 message: "Email Not Registered"
             });
+            return ;
         }
         
         const hashedPassword: string = existingUser.password as string; // fetch the stored hashed password from db
         
         const match = await bcrypt.compare(password, hashedPassword); // match the given password with hashed password
         if(!match) { // handle the case if password does not match
-            return res.status(400).json({
+            res.status(400).json({
                 success: false,
                 message: "Incorrect Password"
             });
+            return ;
         }
 
         const accessToken = jwt.sign( // sign an access token

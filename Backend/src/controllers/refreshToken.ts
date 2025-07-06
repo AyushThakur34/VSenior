@@ -2,49 +2,55 @@ import RefreshToken from "../models/RefreshToken";
 import User from "../models/User";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
+import { Request, Response } from "express";
 dotenv.config();
 
-export const refreshToken = async(req: any, res: any)=> {
+export const refreshToken = async(req: Request, res: Response): Promise<void>=> {
     try {
         const { user, token } = req.body; // destructure userID and token from req
         if(!user || !token) { // handle the case where userID or Token is missing
-            return res.status(400).json({
+            res.status(400).json({
                 success: false,
                 message: "UserID and Token needded"
             });
+            return ;
         }
 
         const existingUser = await User.findById(user).lean(); // find existing user having this userID
         if(!existingUser) { // handle the case if no such user exists
-            return res.status(400).json({
+            res.status(400).json({
                 success: false,
                 message: "User Does Not Exist"
             });
+            return ;
         }
 
         const oldToken = await RefreshToken.findOne({ userID: user }); // fetch old token from database assigned to that user
         if(!oldToken) { // handle the case if no such token is assigned 
-            return res.status(401).json({
+            res.status(401).json({
                 success: false,
                 message: "Unauthorized"
             });
+            return ;
         }
 
         const match = token === oldToken.token; // match the req token and the one stored in db
         if(!match) { // unauthorized if unmatched
-            return res.status(401).json({
+            res.status(401).json({
                 success: false,
                 message: "Unauthorized"
             });
+            return ;
         }
 
         try {
             const decode = jwt.verify(oldToken.token, process.env.JWT_REFRESH_SECRET!); // verify the token stored in db
         } catch(err) {
-            return res.status(401).json({
+            res.status(401).json({
                 success: false,
                 message: "Token Verification Failed"
             });
+            return ;
         }
 
         const newToken = jwt.sign({id: existingUser._id}, process.env.JWT_REFRESH_SECRET!, {expiresIn:"7d"}); // generate new refresh token

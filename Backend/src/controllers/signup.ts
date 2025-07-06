@@ -7,6 +7,7 @@ import isStrongPassword from "../utils/checkStrongPassword";
 import cache from '../utils/cache';
 import RefreshToken from "../models/RefreshToken";
 import dotenv from "dotenv";
+import { Request, Response } from "express";
 dotenv.config();
 
 // takes email and password as req
@@ -14,40 +15,44 @@ dotenv.config();
 // check for existing email
 // encrypts the password and store it into cache
 // verifiy user email by sending verification code
-export const signup = async(req: any, res: any)=> {
+export const signup = async(req: Request, res: Response): Promise<void>=> {
     try {
         const { email, password } = req.body;
 
         if(!validator.isEmail(email)) { // validate email format
-            return res.status(400).json({
+            res.status(400).json({
                 success: false,
                 message: "Invalid Email Format"
             });
+            return ;
         }
 
         const existingUser = await User.findOne({email}); 
         if(existingUser) { // handle the case for already registered email
-            return res.status(400).json({
+            res.status(400).json({
                 success: false,
                 message: "Email Already Registered"
             });
+            return ;
         }
 
         const emailReserved = cache.get(`lock:${email}`); // handle the case if multiple users are trying to signin with same email address
         if(emailReserved) {
-            return res.status(400).json({
+            res.status(400).json({
                 success: false,
                 message: "Email is Already in Verification Process"
             });
+            return ;
         }
 
         cache.set(`lock:${email}`, true, 600); // lock the email in cache before verifying it
 
         if(!isStrongPassword(password)) { // validate password format
-            return res.status(400).json({
+            res.status(400).json({
                 success: false,
                 message: "Password must contain one uppercase, one lowercase, one digit, one special character and must be atleast 8 characters long"
             });
+            return ;
         }
 
         const hashedPassword = await bcrypt.hash(password, 10); // encrypt the password
@@ -61,10 +66,11 @@ export const signup = async(req: any, res: any)=> {
         } catch(err) {
             cache.del(`lock:${email}`);
             console.error(err);
-            return res.status(400).json({
+            res.status(400).json({
                 success: false,
                 message: "Failed to Send Verification Email"
             });
+            return ;
         }
         
         res.status(200).json({
@@ -82,14 +88,15 @@ export const signup = async(req: any, res: any)=> {
 };
 
 // creates account after verifying user_email and username
-export const createAccount = async(req: any, res: any)=> {
+export const createAccount = async(req: Request, res: Response): Promise<void>=> {
     try {
         const { token, username } = req.body;
         if(!token || !username) { // handle the case if token or username is missing from req body
-            return res.status(400).json({
+            res.status(400).json({
                 success: false,
                 message: "Token and Username are Required"
             });
+            return ;
         }
 
         let decoded: any;
@@ -97,19 +104,21 @@ export const createAccount = async(req: any, res: any)=> {
             decoded = jwt.verify(token, process.env.JWT_SECRET!); // decrypt the jwt token
         } catch(err) { // handle the case if token is expired
             console.error(err);
-            return res.status(400).json({
+            res.status(400).json({
                 success: false,
                 message: "Token Expired"
             });
+            return ;
         }
         const {email} = decoded; // destructure email from jwtPayload
 
         const hashedPassword = cache.get(email); // fetch hashedPassword from cache
         if(!hashedPassword) {
-            return res.status(400).json({
+            res.status(400).json({
                 success: false,
                 message: "Verification Expired or Invalid",
             });
+            return ;
         }
         cache.del(email); // delete from cache
         
@@ -165,18 +174,19 @@ export const createAccount = async(req: any, res: any)=> {
         } catch(err: any) {
             if(err.code === 11000) {
                 if (err.keyPattern?.username) {
-                    return res.status(400).json({
+                    res.status(400).json({
                     success: false,
                     message: "Username Already Taken"
                     });
                 }
                 else if(err.keyPattern?.email) {
-                    return res.status(400).json({
+                    res.status(400).json({
                         sucess: false,
                         message: "Email Already Registered"
                     }); 
                 }
             }
+            return ;
         }
     } catch(err) {
         console.error("[SingUp Error:]",err);

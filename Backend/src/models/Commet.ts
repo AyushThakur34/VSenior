@@ -4,12 +4,14 @@ const CommentSchema = new mongoose.Schema({
     comment_by: {
         type: Types.ObjectId,
         ref: "User",
-        required: true
+        required: true,
+        index: true
     },
     commented_on: {
         type: Types.ObjectId,
         refPath: "on_model",
-        required: true
+        required: true,
+        index: true
     },
     on_model: {
         type: String,
