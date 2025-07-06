@@ -62,7 +62,7 @@ export const addLike = async(req: AuthRequest, res: Response):Promise<void>=> {
             const prevDislike = await Dislike.findOne({disliked_on: liked_on, disliked_by: user, on_model});
             if(prevDislike) {
                 parentDoc = await Post.findByIdAndUpdate(parent._id, {$pull:{dislikes: prevDislike._id}}, {new: true});
-                await Dislike.deleteOne(prevDislike._id);
+                await Dislike.findByIdAndDelete(prevDislike._id);
             }
         }
         else {
@@ -70,7 +70,7 @@ export const addLike = async(req: AuthRequest, res: Response):Promise<void>=> {
             const prevDislike = await Dislike.findOne({disliked_on: liked_on, disliked_by: user , on_model});
             if(prevDislike) {
                 parentDoc = await Comment.findByIdAndUpdate(parent._id, {$pull:{dislikes: prevDislike._id}}, {new: true});
-                await Dislike.deleteOne(prevDislike._id);
+                await Dislike.findByIdAndDelete(prevDislike._id);
             }
         }
 
