@@ -5,15 +5,30 @@ import Like from "../models/Like";
 import Dislike from "../models/Dislike";
 import { Response } from "express";
 import AuthRequest from "../utils/authRequest";
+import Reply from "src/models/Reply";
+import checkBody from "src/utils/checkBody";
 
 export const createPost = async(req: AuthRequest, res: Response): Promise<void>=> {
     try {
-        const { title, body, channelID} = req.body;
+        const { heading, content, channelID} = req.body;
         const userID = req.user?._id;
+
+        const title = heading.trim();
+        const body = content.trim();
         if(!title || !body) {
             res.status(400).json({
                 success: false,
                 message: "Title, Body and UserID required"
+            });
+            return ;
+        }
+
+        const msg1 = checkBody(title);
+        const msg2 = checkBody(body);
+        if(msg1 !== "valid" || msg2 !== "valid") {
+            res.status(400).json({
+                success: false,
+                message: `Title: ${msg1}, Body: ${msg2}`
             });
             return ;
         }
@@ -39,13 +54,25 @@ export const createPost = async(req: AuthRequest, res: Response): Promise<void>=
 
 export const editPost = async(req: AuthRequest, res: Response):Promise<void>=> {
     try {
-        const { postID, title, body } = req.body;
+        const { postID, heading, content } = req.body;
         const userID = req.user?._id;
 
+        const title = heading.trim();
+        const body = content.trim();
         if(!postID || !title || !body) {
             res.status(400).json({
                 success: false,
-                message: "Missing Fields"
+                message: "Title, Body and UserID required"
+            });
+            return ;
+        }
+
+        const msg1 = checkBody(title);
+        const msg2 = checkBody(body);
+        if(msg1 !== "valid" || msg2 !== "valid") {
+            res.status(400).json({
+                success: false,
+                message: `Title: ${msg1}, Body: ${msg2}`
             });
             return ;
         }
@@ -120,6 +147,7 @@ export const deletePost = async(req: AuthRequest, res: Response):Promise<void>=>
         }
 
         await Comment.deleteMany({commented_on: postID}); // delete all related comments
+        await Reply.deleteMany({root: postID}); // delete all related replies
         await Like.deleteMany({liked_on: postID}); // delete all related likes 
         await Dislike.deleteMany({disliked_on: postID}); // delete all related dislikes
 

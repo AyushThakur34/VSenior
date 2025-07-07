@@ -4,6 +4,7 @@ import Post from "src/models/Post";
 import Comment from "src/models/Comment";
 import { Response } from "express";
 import AuthRequest from "src/utils/authRequest";
+import Reply from "src/models/Reply";
 
 export const addDislike = async(req: AuthRequest, res: Response):Promise<void>=> {
     try {
@@ -33,6 +34,9 @@ export const addDislike = async(req: AuthRequest, res: Response):Promise<void>=>
         }
         else if(on_model === "Comment") {
             parent = await Comment.findById(disliked_on);
+        }
+        else if(on_model === "Reply") {
+            parent = await Reply.findById(disliked_on);
         }
         else {
             res.status(400).json({
@@ -65,13 +69,21 @@ export const addDislike = async(req: AuthRequest, res: Response):Promise<void>=>
                 await Like.findByIdAndDelete(prevLike._id);
             }
         }
-        else {
+        else if(on_model === "Comment") {
             parentDoc = await Comment.findByIdAndUpdate(parent._id, {$push:{dislikes: dislike._id}}, {new: true});
             const prevLike = await Like.findOne({liked_on: disliked_on, liked_by: user, on_model});
             if(prevLike) {
                 parentDoc = await Comment.findByIdAndUpdate(parent._id, {$pull:{likes: prevLike._id}}, {new: true});
                 await Like.findByIdAndDelete(prevLike._id);
             }
+        }
+        else {
+           parentDoc = await Reply.findByIdAndUpdate(parent._id, {$push:{dislikes: dislike._id}}, {new: true});
+            const prevLike = await Like.findOne({liked_on: disliked_on, liked_by: user, on_model});
+            if(prevLike) {
+                parentDoc = await Reply.findByIdAndUpdate(parent._id, {$pull:{likes: prevLike._id}}, {new: true});
+                await Like.findByIdAndDelete(prevLike._id);
+            } 
         }
 
         res.status(200).json({
@@ -88,8 +100,6 @@ export const addDislike = async(req: AuthRequest, res: Response):Promise<void>=>
         });
     }
 }
-
-
 
 export const removeDislike = async(req: AuthRequest, res: Response):Promise<void>=> {
     try {
@@ -110,6 +120,9 @@ export const removeDislike = async(req: AuthRequest, res: Response):Promise<void
         }
         else if(on_model === "Comment") {
             parent = await Comment.findById(disliked_on);
+        }
+        else if(on_model === "Reply") {
+            parent = await Reply.findById(disliked_on);
         }
         else {
             res.status(400).json({
@@ -140,8 +153,11 @@ export const removeDislike = async(req: AuthRequest, res: Response):Promise<void
         if(on_model === "Post") {
             parentDoc = await Post.findByIdAndUpdate(disliked_on, {$pull: {dislikes: disliked._id}}, {new: true});
         }
-        else {
+        else if(on_model === "Comment") {
             parentDoc = await Comment.findByIdAndUpdate(disliked_on, {$pull: {dislikes: disliked._id}}, {new: true});
+        }
+        else {
+            parentDoc = await Reply.findByIdAndUpdate(disliked_on, {$pull: {dislikes: disliked._id}}, {new: true});
         }
 
         await Dislike.findByIdAndDelete(disliked._id); // remove dislike from db

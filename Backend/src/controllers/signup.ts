@@ -90,7 +90,8 @@ export const signup = async(req: Request, res: Response): Promise<void>=> {
 // creates account after verifying user_email and username
 export const createAccount = async(req: Request, res: Response): Promise<void>=> {
     try {
-        const { token, username } = req.body;
+        const { token, accname } = req.body;
+        const username = accname.trim();
         if(!token || !username) { // handle the case if token or username is missing from req body
             res.status(400).json({
                 success: false,

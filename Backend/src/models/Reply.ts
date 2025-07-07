@@ -1,17 +1,22 @@
 import mongoose, { Types } from "mongoose";
 
-const CommentSchema = new mongoose.Schema({
+const ReplySchema = new mongoose.Schema({
     body: {
         type: String,
         required: true
     },
-    comment_by: {
+    replied_by: {
         type: Types.ObjectId,
         ref: "User",
+        required: true
+    },
+    replied_on: {
+        type: Types.ObjectId,
+        ref: "Comment",
         required: true,
         index: true
     },
-    commented_on: {
+    root: {
         type: Types.ObjectId,
         ref: "Post",
         required: true,
@@ -21,18 +26,14 @@ const CommentSchema = new mongoose.Schema({
         type: Types.ObjectId,
         ref: "Like"
     }],
-    dislikes: [{
+    disliked: [{
         type: Types.ObjectId,
-        ref: "Dislike"
-    }],
-    replies: [{
-        type: Types.ObjectId,
-        ref: "Reply"
+        ref: "Disike"
     }]
 },
 {
     timestamps: true
 });
 
-const Comment = mongoose.model("Comment", CommentSchema);
-export default Comment;
+const Reply = mongoose.model("Reply", ReplySchema);
+export default Reply;
