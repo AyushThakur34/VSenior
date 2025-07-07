@@ -4,6 +4,8 @@ import AuthRequest from "src/utils/authRequest";
 import { Response } from "express";
 import Reply from "src/models/Reply";
 import checkBody from "src/utils/checkBody";
+import Like from "src/models/Like";
+import Dislike from "src/models/Dislike";
 
 export const createComment = async(req: AuthRequest, res: Response):Promise<void> => {
     try {
@@ -163,7 +165,16 @@ export const deleteComment = async(req: AuthRequest, res: Response):Promise<void
 
         const parent = comment.commented_on;
         await Post.findByIdAndUpdate(parent, {$pull: {comments: comment_id}});
-        await Reply.deleteMany({replied_on: comment_id});
+
+        const replies = await Reply.find({replied_on: comment_id}).select("_id");
+        const replyIDs = replies.map(r => r._id);
+
+        await Like.deleteMany({liked_on: {$in: replyIDs}, on_model: "Reply"});
+        await Dislike.deleteMany({disliked_on: {$in: replyIDs}, on_model: "Reply"});
+        await Reply.deleteMany({_id: {$in: replyIDs}});
+
+        await Like.deleteMany({liked_on: comment_id, on_model: "Comment"});
+        await Dislike.deleteMany({disliked_on: comment_id, on_model: "Comment"});
 
         await Comment.findByIdAndDelete(comment_id);
         res.status(200).json({

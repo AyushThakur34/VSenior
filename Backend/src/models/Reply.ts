@@ -28,7 +28,7 @@ const ReplySchema = new mongoose.Schema({
     }],
     disliked: [{
         type: Types.ObjectId,
-        ref: "Disike"
+        ref: "Dislike"
     }]
 },
 {

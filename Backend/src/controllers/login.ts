@@ -84,7 +84,7 @@ export const login = async(req: Request, res: Response): Promise<void>=> {
 
         res.status(200).json({
             success: true,
-            message: "Login Successfull",
+            message: "Login Successful",
             user: userResponse
         });
         

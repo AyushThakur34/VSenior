@@ -146,12 +146,32 @@ export const deletePost = async(req: AuthRequest, res: Response):Promise<void>=>
             return ;
         }
 
-        await Comment.deleteMany({commented_on: postID}); // delete all related comments
-        await Reply.deleteMany({root: postID}); // delete all related replies
-        await Like.deleteMany({liked_on: postID}); // delete all related likes 
-        await Dislike.deleteMany({disliked_on: postID}); // delete all related dislikes
+        const comments = await Comment.find({commented_on: postID}).select("_id");
+        const commentIDs = comments.map(c => c._id);
 
-        await Post.findByIdAndDelete(postID); // delete post
+        const replies = await Reply.find({replied_on: {$in: commentIDs}}).select("_id");
+        const replyIDs = replies.map(r => r._id);
+
+        // delete all likes and dislikes on comments
+        await Like.deleteMany({liked_on: {$in: commentIDs}, on_model: "Comment"});
+        await Dislike.deleteMany({disliked_on: {$in: commentIDs}, on_model: "Comment"});
+
+        // delete all likes and dislikes on replies
+        await Like.deleteMany({liked_on: {$in: replyIDs}, on_model: "Reply"});
+        await Dislike.deleteMany({disliked_on: {$in: replyIDs}, on_model: "Reply"});
+
+        // delete replies
+        await Reply.deleteMany({ _id: { $in: replyIDs } });
+
+        // delete comments
+        await Comment.deleteMany({ _id: { $in: commentIDs } });
+
+        // delete likes/dislikes on the post itself
+        await Like.deleteMany({liked_on: postID, on_model: "Post"});
+        await Dislike.deleteMany({disliked_on: postID, on_model: "Post"});
+
+        // delete post itself
+        await Post.findByIdAndDelete(postID);
 
         res.status(200).json({
             success: true,

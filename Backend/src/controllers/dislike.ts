@@ -115,15 +115,9 @@ export const removeDislike = async(req: AuthRequest, res: Response):Promise<void
         }
 
         let parent: any; // check on_model it should be Post or Comment
-        if(on_model === "Post") {
-            parent = await Post.findById(disliked_on)
-        }
-        else if(on_model === "Comment") {
-            parent = await Comment.findById(disliked_on);
-        }
-        else if(on_model === "Reply") {
-            parent = await Reply.findById(disliked_on);
-        }
+        if(on_model === "Post") parent = await Post.findById(disliked_on)
+        else if(on_model === "Comment") parent = await Comment.findById(disliked_on);
+        else if(on_model === "Reply") parent = await Reply.findById(disliked_on);
         else {
             res.status(400).json({
                 success: false,
@@ -144,32 +138,26 @@ export const removeDislike = async(req: AuthRequest, res: Response):Promise<void
         if(!disliked) { // handle the case if not
             res.status(400).json({
                 success: false,
-                message: "Parent is not disliked"
+                message: "Parent is not Disliked"
             });
             return ;
         }
 
         let parentDoc: any; // remove disliked from parent
-        if(on_model === "Post") {
-            parentDoc = await Post.findByIdAndUpdate(disliked_on, {$pull: {dislikes: disliked._id}}, {new: true});
-        }
-        else if(on_model === "Comment") {
-            parentDoc = await Comment.findByIdAndUpdate(disliked_on, {$pull: {dislikes: disliked._id}}, {new: true});
-        }
-        else {
-            parentDoc = await Reply.findByIdAndUpdate(disliked_on, {$pull: {dislikes: disliked._id}}, {new: true});
-        }
+        if(on_model === "Post") parentDoc = await Post.findByIdAndUpdate(disliked_on, {$pull: {dislikes: disliked._id}}, {new: true});
+        else if(on_model === "Comment") parentDoc = await Comment.findByIdAndUpdate(disliked_on, {$pull: {dislikes: disliked._id}}, {new: true});
+        else parentDoc = await Reply.findByIdAndUpdate(disliked_on, {$pull: {dislikes: disliked._id}}, {new: true});
 
         await Dislike.findByIdAndDelete(disliked._id); // remove dislike from db
 
         res.status(200).json({
             success: true,
-            message: "dislike Removed Successfully",
+            message: "Dislike Removed Successfully",
             parent: parentDoc
         });
 
     } catch(err) {
-        console.error("[dislike Removing Error]:", err);
+        console.error("[Dislike Removing Error]:", err);
         res.status(500).json({
             success: false,
             message: "Error While Removing dislike",

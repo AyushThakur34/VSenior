@@ -29,15 +29,9 @@ export const addLike = async(req: AuthRequest, res: Response):Promise<void>=> {
         }
         
         let parent: any; // check on_model it should be Post or Comment
-        if(on_model === "Post") {
-            parent = await Post.findById(liked_on)
-        }
-        else if(on_model === "Comment") {
-            parent = await Comment.findById(liked_on);
-        }
-        else if(on_model === "Reply"){
-            parent = await Reply.findById(liked_on);
-        }
+        if(on_model === "Post") parent = await Post.findById(liked_on)
+        else if(on_model === "Comment") parent = await Comment.findById(liked_on);
+        else if(on_model === "Reply") parent = await Reply.findById(liked_on);
         
         else {
             res.status(400).json({
@@ -116,15 +110,9 @@ export const removeLike = async(req: AuthRequest, res: Response):Promise<void>=>
         }
 
         let parent: any; // check on_model it should be Post or Comment
-        if(on_model === "Post") {
-            parent = await Post.findById(liked_on)
-        }
-        else if(on_model === "Comment") {
-            parent = await Comment.findById(liked_on);
-        }
-        else if(on_model === "Reply") {
-            parent = await Reply.findById(liked_on);
-        }
+        if(on_model === "Post") parent = await Post.findById(liked_on)
+        else if(on_model === "Comment") parent = await Comment.findById(liked_on);
+        else if(on_model === "Reply") parent = await Reply.findById(liked_on);
         else {
             res.status(400).json({
                 success: false,
@@ -151,15 +139,9 @@ export const removeLike = async(req: AuthRequest, res: Response):Promise<void>=>
         }
 
         let parentDoc: any; // remove liked from parent
-        if(on_model === "Post") {
-            parentDoc = await Post.findByIdAndUpdate(liked_on, {$pull: {likes: liked._id}}, {new: true});
-        }
-        else if(on_model === "Comment") {
-            parentDoc = await Comment.findByIdAndUpdate(liked_on, {$pull: {likes: liked._id}}, {new: true});
-        }
-        else {
-            parentDoc = await Reply.findByIdAndUpdate(liked_on, {$pull: {likes: liked._id}}, {new: true});
-        }
+        if(on_model === "Post") parentDoc = await Post.findByIdAndUpdate(liked_on, {$pull: {likes: liked._id}}, {new: true});
+        else if(on_model === "Comment") parentDoc = await Comment.findByIdAndUpdate(liked_on, {$pull: {likes: liked._id}}, {new: true});
+        else parentDoc = await Reply.findByIdAndUpdate(liked_on, {$pull: {likes: liked._id}}, {new: true});
 
         await Like.findByIdAndDelete(liked._id); // remove like from db
 
