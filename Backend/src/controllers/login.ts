@@ -9,8 +9,8 @@ dotenv.config();
 
 export const login = async(req: Request, res: Response): Promise<void>=> {
     try {
-        const {email, password} = req.body; // destructure email and password from req body
-        if(!email || !password) { // handle the case if they are missing
+        const {email, password} = req.body; 
+        if(!email || !password) { // handle missing fields
             res.status(400).json({
                 success: false,
                 message: "Email and Password both are required"

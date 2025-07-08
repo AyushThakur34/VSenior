@@ -12,11 +12,11 @@ const ChannelSchema = new mongoose.Schema({
     },
     members: [{
         type: Types.ObjectId,
-        ref: "User"
+        ref: "User",
     }],
     posts: [{
         type: Types.ObjectId,
-        ref: "Post"
+        ref: "Post",
     }]
 });
 

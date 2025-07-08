@@ -15,6 +15,12 @@ const PostSchema = new mongoose.Schema({
         required: true,
         index: true
     },  
+    posted_on: {
+        type: Types.ObjectId,
+        ref: "Channel",
+        required: true,
+        index: true
+    },
     likes: [{
         type: Types.ObjectId,
         ref: "Like"

@@ -5,14 +5,15 @@ import Reply from "src/models/Reply";
 import checkBody from "src/utils/checkBody";
 import Like from "src/models/Like";
 import Dislike from "src/models/Dislike";
+import Channel from "src/models/Channel";
 
 export const createReply = async(req: AuthRequest, res: Response): Promise<void> => {
     try {
-        const { replied_on, content } = req.body;
+        const { replied_on, body, channel_id } = req.body;
         const user = req.user?._id;
 
-        const body = content.trim();
-        if(!replied_on || !body) {
+        const content = body.trim();
+        if(!replied_on || !content || !channel_id) {
             res.status(400).json({
                 success: false, 
                 message: "Missing Fields"
@@ -20,7 +21,19 @@ export const createReply = async(req: AuthRequest, res: Response): Promise<void>
             return ;
         }
 
-        const msg = checkBody(body);
+        const channel = await Channel.findById(channel_id);
+        if(channel?.type === "college") {
+            const Member = channel.members.some(member => member.toString() === user);
+            if(!Member) {
+                res.status(403).json({
+                    success: false,
+                    message: "You are not authorized to make changes in this channel"
+                });
+                return ;
+            }
+        }
+
+        const msg = checkBody(content);
         if(msg != "valid") {
             res.status(400).json({
                 success: false,
@@ -39,7 +52,7 @@ export const createReply = async(req: AuthRequest, res: Response): Promise<void>
         }
 
         const duplicate = await Reply.findOne({
-            body,
+            body: content,
             replied_on,
             replied_by: user
         });
@@ -52,7 +65,7 @@ export const createReply = async(req: AuthRequest, res: Response): Promise<void>
         }
 
         const reply = await Reply.create({
-            body,
+            body: content,
             replied_on,
             replied_by: user,
             root: comment?.commented_on
@@ -75,13 +88,13 @@ export const createReply = async(req: AuthRequest, res: Response): Promise<void>
     }
 }
 
-const updateReply = async(req: AuthRequest, res: Response): Promise<void> => {
+export const updateReply = async(req: AuthRequest, res: Response): Promise<void> => {
     try {
-        const { reply_id, content }  = req.body;
+        const { reply_id, body, channel_id }  = req.body;
         const user = req.user?._id;
 
-        const body = content.trim();
-        if(!reply_id || !body) {
+        const content = body.trim();
+        if(!reply_id || !content || !channel_id) {
             res.status(400).json({
                 success: false,
                 message: "Missing Fields"
@@ -89,7 +102,19 @@ const updateReply = async(req: AuthRequest, res: Response): Promise<void> => {
             return ;
         }
 
-        const msg = checkBody(body);
+        const channel = await Channel.findById(channel_id);
+        if(channel?.type === "college") {
+            const Member = channel.members.some(member => member.toString() === user);
+            if(!Member) {
+                res.status(403).json({
+                    success: false,
+                    message: "You are not authorized to make changes in this channel"
+                });
+                return ;
+            }
+        }
+
+        const msg = checkBody(content);
         if(msg != "valid") {
             res.status(400).json({
                 success: false,
@@ -115,7 +140,7 @@ const updateReply = async(req: AuthRequest, res: Response): Promise<void> => {
             return ;
         }
 
-        const updatedReply = await Reply.findByIdAndUpdate(reply_id, {body}, {new: true});
+        const updatedReply = await Reply.findByIdAndUpdate(reply_id, {body: content}, {new: true});
         res.status(200).json({
             success: true,
             message: "Reply Updated Successfully",
@@ -132,16 +157,28 @@ const updateReply = async(req: AuthRequest, res: Response): Promise<void> => {
     }
 }
 
-const DeleteReply = async(req: AuthRequest, res: Response): Promise<void> => {
+export const DeleteReply = async(req: AuthRequest, res: Response): Promise<void> => {
     try {
-        const { reply_id } = req.body;
+        const { reply_id, channel_id } = req.body;
         const user = req.user?._id;
-        if(!reply_id) {
+        if(!reply_id || !channel_id) {
             res.status(400).json({
                 success: false,
                 message: "Missing Field"
             })
             return ;
+        }
+
+        const channel = await Channel.findById(channel_id);
+        if(channel?.type === "college") {
+            const Member = channel.members.some(member => member.toString() === user);
+            if(!Member) {
+                res.status(403).json({
+                    success: false,
+                    message: "You are not authorized to make changes in this channel"
+                });
+                return ;
+            }
         }
 
         const reply = await Reply.findById(reply_id);

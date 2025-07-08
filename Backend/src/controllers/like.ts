@@ -5,18 +5,31 @@ import Comment from "src/models/Comment";
 import { Response } from "express";
 import AuthRequest from "src/utils/authRequest";
 import Reply from "src/models/Reply";
+import Channel from "src/models/Channel";
 
 export const addLike = async(req: AuthRequest, res: Response):Promise<void>=> {
     try {
-        const { liked_on, on_model } =  req.body;
+        const { liked_on, on_model, channel_id } =  req.body;
         const user = req.user?._id;
 
-        if(!liked_on || !on_model) { // handle missing fields
+        if(!liked_on || !on_model || !channel_id) { // handle missing fields
             res.status(400).json({
                 success: false,
                 message: "Missing Fields"
             });
             return ;
+        }
+
+        const channel = await Channel.findById(channel_id);
+        if(channel?.type === "college") {
+            const Member = channel.members.some(member => member.toString() === user);
+            if(!Member) {
+                res.status(403).json({
+                    success: false,
+                    message: "You are not authorized to make changes in this channel"
+                });
+                return ;
+            }
         }
 
         const alreadyLiked = await Like.findOne({liked_by: user, liked_on: liked_on, on_model});
@@ -28,15 +41,14 @@ export const addLike = async(req: AuthRequest, res: Response):Promise<void>=> {
             return ;
         }
         
-        let parent: any; // check on_model it should be Post or Comment
+        let parent: any; // check on_model it should be Post, Comment or Reply
         if(on_model === "Post") parent = await Post.findById(liked_on)
         else if(on_model === "Comment") parent = await Comment.findById(liked_on);
         else if(on_model === "Reply") parent = await Reply.findById(liked_on);
-        
         else {
             res.status(400).json({
                 success: false,
-                message: "Parent Does Not Exist"
+                message: "Model Does Not Exist"
             });
             return ;
         }
@@ -49,7 +61,7 @@ export const addLike = async(req: AuthRequest, res: Response):Promise<void>=> {
             return ;
         }
 
-        const like = await Like.create({ // if everything is passed create liked
+        const like = await Like.create({ // if everything is passed create like
             liked_by: user,
             liked_on: parent._id,
             on_model
@@ -98,10 +110,10 @@ export const addLike = async(req: AuthRequest, res: Response):Promise<void>=> {
 
 export const removeLike = async(req: AuthRequest, res: Response):Promise<void>=> {
     try {
-        const { liked_on, on_model } = req.body;
+        const { liked_on, on_model, channel_id } = req.body;
         const user = req.user?._id;
 
-        if(!liked_on || !on_model) { // handle missing fields
+        if(!liked_on || !on_model || !channel_id) { // handle missing fields
             res.status(400).json({
                 success: false,
                 message: "Missing Fields"
@@ -109,14 +121,26 @@ export const removeLike = async(req: AuthRequest, res: Response):Promise<void>=>
             return ;
         }
 
-        let parent: any; // check on_model it should be Post or Comment
+        const channel = await Channel.findById(channel_id);
+        if(channel?.type === "college") {
+            const Member = channel.members.some(member => member.toString() === user);
+            if(!Member) {
+                res.status(403).json({
+                    success: false,
+                    message: "You are not authorized to make changes in this channel"
+                });
+                return ;
+            }
+        }
+
+        let parent: any; // check on_model it should be Post, Comment or Reply
         if(on_model === "Post") parent = await Post.findById(liked_on)
         else if(on_model === "Comment") parent = await Comment.findById(liked_on);
         else if(on_model === "Reply") parent = await Reply.findById(liked_on);
         else {
             res.status(400).json({
                 success: false,
-                message: "Parent Does Not Exist"
+                message: "Model Does Not Exist"
             });
             return ;
         }
@@ -138,7 +162,7 @@ export const removeLike = async(req: AuthRequest, res: Response):Promise<void>=>
             return ;
         }
 
-        let parentDoc: any; // remove liked from parent
+        let parentDoc: any; // remove like from parent
         if(on_model === "Post") parentDoc = await Post.findByIdAndUpdate(liked_on, {$pull: {likes: liked._id}}, {new: true});
         else if(on_model === "Comment") parentDoc = await Comment.findByIdAndUpdate(liked_on, {$pull: {likes: liked._id}}, {new: true});
         else parentDoc = await Reply.findByIdAndUpdate(liked_on, {$pull: {likes: liked._id}}, {new: true});

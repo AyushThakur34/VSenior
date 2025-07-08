@@ -10,12 +10,12 @@ import checkBody from "src/utils/checkBody";
 
 export const createPost = async(req: AuthRequest, res: Response): Promise<void>=> {
     try {
-        const { heading, content, channelID} = req.body;
+        const { title, body, channelID } = req.body;
         const userID = req.user?._id;
 
-        const title = heading.trim();
-        const body = content.trim();
-        if(!title || !body) {
+        const heading = title.trim();
+        const content = body.trim();
+        if(!heading || !content || !channelID) { // handle missing fields
             res.status(400).json({
                 success: false,
                 message: "Title, Body and UserID required"
@@ -23,17 +23,38 @@ export const createPost = async(req: AuthRequest, res: Response): Promise<void>=
             return ;
         }
 
-        const msg1 = checkBody(title);
-        const msg2 = checkBody(body);
-        if(msg1 !== "valid" || msg2 !== "valid") {
+        const channel = await Channel.findById(channelID);
+        if(!channel) { // check for channel existence
+            res.status(400).json({
+                success: false,
+                message: "Channel does not exist"
+            });
+            return ;
+        }
+
+        if(channel.type === "college") { // check if the user is member of this channel
+            const Member = channel.members.some(member => member.toString() === userID);
+            if(!Member) {
+                res.status(403).json({
+                    success: false,
+                    message: "You are not a member of this college channel"
+                });
+                return ;
+            }
+        }
+
+        const msg1 = checkBody(heading);
+        const msg2 = checkBody(content);
+        if(msg1 !== "valid" || msg2 !== "valid") { // validate title and body for spam or bad words
             res.status(400).json({
                 success: false,
                 message: `Title: ${msg1}, Body: ${msg2}`
             });
             return ;
-        }
+        }   
 
-        const newPost = await Post.create({title, body, posted_by: userID});
+        // if everything is passed create the post and add into respective channel
+        const newPost = await Post.create({title: heading, body: content, posted_by: userID, posted_on: channel._id}); 
         await Channel.findByIdAndUpdate(channelID, {$push: {posts: newPost._id}});
 
         res.status(200).json({
@@ -54,12 +75,12 @@ export const createPost = async(req: AuthRequest, res: Response): Promise<void>=
 
 export const editPost = async(req: AuthRequest, res: Response):Promise<void>=> {
     try {
-        const { postID, heading, content } = req.body;
+        const { postID, title, body } = req.body;
         const userID = req.user?._id;
 
-        const title = heading.trim();
-        const body = content.trim();
-        if(!postID || !title || !body) {
+        const heading = title.trim();
+        const content = body.trim();
+        if(!postID || !heading || !content) { // check for missing fields
             res.status(400).json({
                 success: false,
                 message: "Title, Body and UserID required"
@@ -67,8 +88,8 @@ export const editPost = async(req: AuthRequest, res: Response):Promise<void>=> {
             return ;
         }
 
-        const msg1 = checkBody(title);
-        const msg2 = checkBody(body);
+        const msg1 = checkBody(heading);
+        const msg2 = checkBody(content);
         if(msg1 !== "valid" || msg2 !== "valid") {
             res.status(400).json({
                 success: false,
@@ -89,7 +110,7 @@ export const editPost = async(req: AuthRequest, res: Response):Promise<void>=> {
 
         const oldTitle = post.title;
         const oldBody = post.body;
-        if(oldTitle == title &&  oldBody == body) { // no need to retreive data if fields are unchanged
+        if(oldTitle == heading && oldBody == content) { // no need to retreive data if fields are unchanged
             res.status(400).json({
                 success: false,
                 message: "Title and Body both are unchanged"
@@ -97,7 +118,7 @@ export const editPost = async(req: AuthRequest, res: Response):Promise<void>=> {
             return ;
         }
 
-        const updatedPost = await Post.findByIdAndUpdate(postID, {title, body}, {new: true  });
+        const updatedPost = await Post.findByIdAndUpdate(postID, {title: heading, body: content}, {new: true});
         res.status(200).json({
             success: true,
             message: "Post Updated Successfully",
