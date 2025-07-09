@@ -1,16 +1,19 @@
 import Like from "src/models/Like";
 import Dislike from "src/models/Dislike";
-import Post from "src/models/Post";
-import Comment from "src/models/Comment";
 import { Response } from "express";
 import AuthRequest from "src/utils/authRequest";
-import Reply from "src/models/Reply";
 import Channel from "src/models/Channel";
+import Post from "src/models/Post";
+import Comment from "src/models/Comment";
+import Reply from "src/models/Reply";
+import dotenv from "dotenv";
+dotenv.config();
 
 export const addLike = async(req: AuthRequest, res: Response):Promise<void>=> {
     try {
-        const { liked_on, on_model, channel_id } =  req.body;
-        const user = req.user?._id;
+        const { liked_on, on_model, channel_id} =  req.body;
+        const userID = req.user?._id;
+        const member = req.user?.private_member;
 
         if(!liked_on || !on_model || !channel_id) { // handle missing fields
             res.status(400).json({
@@ -20,19 +23,16 @@ export const addLike = async(req: AuthRequest, res: Response):Promise<void>=> {
             return ;
         }
 
-        const channel = await Channel.findById(channel_id);
-        if(channel?.type === "college") {
-            const Member = channel.members.some(member => member.toString() === user);
-            if(!Member) {
-                res.status(403).json({
-                    success: false,
-                    message: "You are not authorized to make changes in this channel"
-                });
-                return ;
-            }
+        const channel = await Channel.findById(channel_id).lean();
+        if(channel?.type === "college" && !member) {
+            res.status(403).json({
+                success: false,
+                message: "Unauthorized"
+            });
+            return ;
         }
 
-        const alreadyLiked = await Like.findOne({liked_by: user, liked_on: liked_on, on_model});
+        const alreadyLiked = await Like.findOne({liked_by: userID, liked_on: liked_on, on_model}).lean();
         if(alreadyLiked) { // handle if the item is already liked by the same user
             res.status(400).json({
                 success: false,
@@ -40,70 +40,56 @@ export const addLike = async(req: AuthRequest, res: Response):Promise<void>=> {
             }); 
             return ;
         }
-        
-        let parent: any; // check on_model it should be Post, Comment or Reply
-        if(on_model === "Post") parent = await Post.findById(liked_on)
-        else if(on_model === "Comment") parent = await Comment.findById(liked_on);
-        else if(on_model === "Reply") parent = await Reply.findById(liked_on);
-        else {
-            res.status(400).json({
-                success: false,
-                message: "Model Does Not Exist"
-            });
-            return ;
-        }
+                
+        let parent: any;
+        if(on_model === "Post") parent = await Post.findByIdAndUpdate(liked_on, {$inc: {like_count: +1}});
+        else if(on_model === "Comment") parent = await Comment.findByIdAndUpdate(liked_on, {$inc: {like_count: +1}});
+        else if(on_model === "Reply") parent = await Reply.findByIdAndUpdate(liked_on, {$inc: {like_count: +1}});
+        else parent = null;
 
         if(!parent) { // handle the case where parent does not exist
             res.status(404).json({
                 success: false,
-                message: "Parent not found"
+                message: "Parent Not Found"
             });
             return ;
         }
 
         const like = await Like.create({ // if everything is passed create like
-            liked_by: user,
+            liked_by: userID,
             liked_on: parent._id,
             on_model
         })
 
-        let parentDoc: any; // store it into parent and remove any dislike done by the user on the same item 
+        let parentDoc: any;
         if(on_model === "Post") {
-            parentDoc = await Post.findByIdAndUpdate(parent._id, {$push:{likes: like._id}}, {new: true});
-            const prevDislike = await Dislike.findOne({disliked_on: liked_on, disliked_by: user, on_model});
-            if(prevDislike) {
-                parentDoc = await Post.findByIdAndUpdate(parent._id, {$pull:{dislikes: prevDislike._id}}, {new: true});
-                await Dislike.findByIdAndDelete(prevDislike._id);
-            }
+            parentDoc = await Post.findById(parent._id).lean()
+            const prevDislike = await Dislike.findOneAndDelete({disliked_on: liked_on, disliked_by: userID, on_model}).lean();
+            if(prevDislike) parentDoc = await Post.findByIdAndUpdate(parent._id, {$inc:{dislike_count: -1}}, {new: true}).lean();
         }
         else if(on_model === "Comment") {
-            parentDoc = await Comment.findByIdAndUpdate(parent._id, {$push:{likes: like._id}}, {new: true});
-            const prevDislike = await Dislike.findOne({disliked_on: liked_on, disliked_by: user , on_model});
-            if(prevDislike) {
-                parentDoc = await Comment.findByIdAndUpdate(parent._id, {$pull:{dislikes: prevDislike._id}}, {new: true});
-                await Dislike.findByIdAndDelete(prevDislike._id);
-            }
+            parentDoc = await Comment.findById(parent._id).lean()
+            const prevDislike = await Dislike.findOneAndDelete({disliked_on: liked_on, disliked_by: userID, on_model}).lean();
+            if(prevDislike) parentDoc = await Comment.findByIdAndUpdate(parent._id, {$inc:{dislike_count: -1}}, {new: true}).lean();
         }
         else {
-            parentDoc = await Reply.findByIdAndUpdate(parent._id, {$push:{likes: like._id}}, {new: true});
-            const prevDislike = await Dislike.findOne({disliked_on: liked_on, disliked_by: user , on_model});
-            if(prevDislike) {
-                parentDoc = await Reply.findByIdAndUpdate(parent._id, {$pull:{dislikes: prevDislike._id}}, {new: true});
-                await Dislike.findByIdAndDelete(prevDislike._id);
-            }
+            parentDoc = await Reply.findById(parent._id).lean()
+            const prevDislike = await Dislike.findOneAndDelete({disliked_on: liked_on, disliked_by: userID, on_model}).lean();
+            if(prevDislike) parentDoc = await Reply.findByIdAndUpdate(parent._id, {$inc:{dislike_count: -1}}, {new: true}).lean();
         }
+        
 
         res.status(200).json({
             success: true,
             message: "Parent Liked Successfully",
-            parent: parentDoc
+            like_count: parentDoc.like_count,
+            dislike_count: parentDoc.dislike_count
         });
     } catch(err) {
-        console.error("[Like Adding Error]:", err);
+        if (process.env.NODE_ENV !== "production") console.error("[Like Adding Error]:", err);
         res.status(500).json({
             success: false,
             message: "Error While Adding Like",
-            error: err
         });
     }
 }
@@ -111,7 +97,8 @@ export const addLike = async(req: AuthRequest, res: Response):Promise<void>=> {
 export const removeLike = async(req: AuthRequest, res: Response):Promise<void>=> {
     try {
         const { liked_on, on_model, channel_id } = req.body;
-        const user = req.user?._id;
+        const userID = req.user?._id;
+        const member = req.user?.private_member;
 
         if(!liked_on || !on_model || !channel_id) { // handle missing fields
             res.status(400).json({
@@ -121,66 +108,50 @@ export const removeLike = async(req: AuthRequest, res: Response):Promise<void>=>
             return ;
         }
 
-        const channel = await Channel.findById(channel_id);
-        if(channel?.type === "college") {
-            const Member = channel.members.some(member => member.toString() === user);
-            if(!Member) {
-                res.status(403).json({
-                    success: false,
-                    message: "You are not authorized to make changes in this channel"
-                });
-                return ;
-            }
-        }
-
-        let parent: any; // check on_model it should be Post, Comment or Reply
-        if(on_model === "Post") parent = await Post.findById(liked_on)
-        else if(on_model === "Comment") parent = await Comment.findById(liked_on);
-        else if(on_model === "Reply") parent = await Reply.findById(liked_on);
-        else {
-            res.status(400).json({
+        const channel = await Channel.findById(channel_id).lean(); // check for private channel
+        if(channel?.type === "college" && !member) {
+            res.status(403).json({
                 success: false,
-                message: "Model Does Not Exist"
+                message: "Unauthorized"
             });
             return ;
         }
+
+        const liked = await Like.findOneAndDelete({liked_by: userID, liked_on: liked_on, on_model}).lean() // check if such like exists in db
+        if(!liked) { // handle the case like does not exist
+            res.status(400).json({
+                success: false,
+                message: "Parent is Not Liked"
+            });
+            return ;
+        }
+
+        let parent: any;
+        if(on_model === "Post") parent = await Post.findByIdAndUpdate(liked_on, {$inc: {like_count: -1}});
+        else if(on_model === "Comment") parent = await Comment.findByIdAndUpdate(liked_on, {$inc: {like_count: -1}});
+        else if(on_model === "Reply") parent = await Reply.findByIdAndUpdate(liked_on, {$inc: {like_count: -1}});
+        else parent = null;
 
         if(!parent) { // handle the case where parent does not exist
             res.status(404).json({
                 success: false,
-                message: "Parent not found"
+                message: "Parent Not Found"
             });
             return ;
         }
-
-        const liked = await Like.findOne({liked_by: user, liked_on: liked_on, on_model}) // check if such like exists in db
-        if(!liked) { // handle the case if not
-            res.status(400).json({
-                success: false,
-                message: "Parent is not liked"
-            });
-            return ;
-        }
-
-        let parentDoc: any; // remove like from parent
-        if(on_model === "Post") parentDoc = await Post.findByIdAndUpdate(liked_on, {$pull: {likes: liked._id}}, {new: true});
-        else if(on_model === "Comment") parentDoc = await Comment.findByIdAndUpdate(liked_on, {$pull: {likes: liked._id}}, {new: true});
-        else parentDoc = await Reply.findByIdAndUpdate(liked_on, {$pull: {likes: liked._id}}, {new: true});
-
-        await Like.findByIdAndDelete(liked._id); // remove like from db
 
         res.status(200).json({
             success: true,
             message: "Like Removed Successfully",
-            parent: parentDoc
+            like_count: parent.like_count,
+            dislike_count: parent.dislike_count
         });
 
     } catch(err) {
-        console.error("[Like Removing Error]:", err);
+        if (process.env.NODE_ENV !== "production") console.error("[Like Removing Error]:", err);
         res.status(500).json({
             success: false,
             message: "Error While Removing Like",
-            error: err
         });
     }
 }

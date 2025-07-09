@@ -1,9 +1,6 @@
 import mongoose, { Types } from "mongoose";
 
 const UserSchema = new mongoose.Schema({
-    full_name: {
-        type: String,
-    },
     username: {
         type: String,
         required: true,
@@ -16,7 +13,8 @@ const UserSchema = new mongoose.Schema({
     },
     password: {
         type: String,
-        required: true
+        required: true,
+        select: false
     },
     college_name: {
         type: String
@@ -26,34 +24,18 @@ const UserSchema = new mongoose.Schema({
         unique: true,
         sparse: true
     },
-    gender: {
-        type: String
+    post_count: {
+        type: Number,
+        default: 0
     },
-    handles: {
-        linkedin: {
-            type: String,
-            unique: true,
-            sparse: true
-        },
-        leetcode: {
-            type: String,
-            unique: true,
-            sparse: true
-        },
-        github: {
-            type: String,
-            unique: true,
-            sparse: true
-        }
+    additional_data: {
+        type: Types.ObjectId,
+        ref: "AdditionalData"
     },
-    followers: [{
-        type: Types.ObjectId,
-        ref: "User"
-    }],
-    following: [{
-        type: Types.ObjectId,
-        ref: "User"
-    }]
+    private_member: {
+        type: Boolean,
+        default: false
+    }
 });
 
 const User = mongoose.model("User", UserSchema);

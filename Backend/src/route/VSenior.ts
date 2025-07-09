@@ -7,10 +7,11 @@ import { verifyAccessToken } from "../middleware/auth";
 import { addLike, removeLike } from "src/controllers/like";
 import { createComment, editComment, deleteComment } from "src/controllers/comment";
 import { AddCommentRateLimiter, UpdateCommentRateLimiter, DeleteCommentRateLimiter } from "src/middleware/commentRateLimiter";
+import { SignupRateLimiter } from "src/middleware/signupRateLimiter";
 
 const route = express.Router();
 
-route.post("/signup", signup);
+route.post("/signup", SignupRateLimiter, signup);
 route.post("/create-account", createAccount);
 route.post("/login", login);
 route.post("/refresh-token", refreshToken);

@@ -1,4 +1,4 @@
-import mongoose, { Types } from "mongoose";
+import mongoose, { Types, Document } from "mongoose";
 
 const PostSchema = new mongoose.Schema({
     title: {
@@ -21,18 +21,18 @@ const PostSchema = new mongoose.Schema({
         required: true,
         index: true
     },
-    likes: [{
-        type: Types.ObjectId,
-        ref: "Like"
-    }],
-    dislikes: [{
-        type: Types.ObjectId,
-        ref: "Dislike"
-    }],
-    comments: [{
-        type: Types.ObjectId,
-        ref: "Comment"
-    }]
+    comment_count: {
+        type: Number,
+        default: 0
+    },
+    like_count: {
+        type: Number,
+        default: 0
+    },
+    dislike_count: {
+        type: Number,
+        default: 0
+    }
 },
 {
     timestamps: true

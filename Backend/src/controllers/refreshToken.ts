@@ -44,7 +44,7 @@ export const refreshToken = async(req: Request, res: Response): Promise<void>=> 
         }
 
         try {
-            const decode = jwt.verify(oldToken.token, process.env.JWT_REFRESH_SECRET!); // verify the token stored in db
+            jwt.verify(oldToken.token, process.env.JWT_REFRESH_SECRET!); // verify the token stored in db
         } catch(err) {
             res.status(401).json({
                 success: false,
@@ -54,7 +54,7 @@ export const refreshToken = async(req: Request, res: Response): Promise<void>=> 
         }
 
         const newToken = jwt.sign({id: existingUser._id}, process.env.JWT_REFRESH_SECRET!, {expiresIn:"7d"}); // generate new refresh token
-        const updatedToken = await RefreshToken.findByIdAndUpdate(oldToken._id, {token: newToken, expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)}); // replace the old in the db with new token
+        await RefreshToken.findByIdAndUpdate(oldToken._id, {token: newToken, expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)}); // replace the old in the db with new token
 
         res.cookie("refreshToken", newToken, { // send new refresh token in cookie
             httpOnly: true,
@@ -64,7 +64,7 @@ export const refreshToken = async(req: Request, res: Response): Promise<void>=> 
         });
 
         const newAccessToken = jwt.sign( // assign new access token
-            {id: existingUser._id, username: existingUser.username, email: existingUser.email},
+            {id: existingUser._id, username: existingUser.username, email: existingUser.email, private_member: existingUser.private_member},
             process.env.JWT_ACCESS_SECRET!, 
             {expiresIn:"15m"}
         );

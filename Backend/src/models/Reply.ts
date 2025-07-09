@@ -1,4 +1,4 @@
-import mongoose, { Types } from "mongoose";
+import mongoose, { mongo, Types } from "mongoose";
 
 const ReplySchema = new mongoose.Schema({
     body: {
@@ -16,20 +16,14 @@ const ReplySchema = new mongoose.Schema({
         required: true,
         index: true
     },
-    root: {
-        type: Types.ObjectId,
-        ref: "Post",
-        required: true,
-        index: true
+    like_count: {
+        type: Number,
+        default: 0
     },
-    likes: [{
-        type: Types.ObjectId,
-        ref: "Like"
-    }],
-    disliked: [{
-        type: Types.ObjectId,
-        ref: "Dislike"
-    }]
+    dislike_count: {
+        type: Number,
+        default: 0
+    }
 },
 {
     timestamps: true

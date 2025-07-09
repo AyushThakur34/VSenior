@@ -9,11 +9,12 @@ dotenv.config();
 
 export const login = async(req: Request, res: Response): Promise<void>=> {
     try {
-        const {email, password} = req.body; 
+        const password = req.body.passed?.trim(); 
+        const email = req.body.email?.toLowerCase().trim();
         if(!email || !password) { // handle missing fields
             res.status(400).json({
                 success: false,
-                message: "Email and Password both are required"
+                message: "Email and Password Both are Required"
             });
             return ;
         }
@@ -26,7 +27,7 @@ export const login = async(req: Request, res: Response): Promise<void>=> {
             return ;
         }
 
-        const existingUser = await User.findOne({email: email}); // find existing user
+        const existingUser = await User.findOne({email: email}).select("+password"); // find existing user
         if(!existingUser) { // handle the case if user does not exist
             res.status(400).json({
                 success: false,
@@ -47,7 +48,7 @@ export const login = async(req: Request, res: Response): Promise<void>=> {
         }
 
         const accessToken = jwt.sign( // sign an access token
-            {id: existingUser._id, username: existingUser.username, email},
+            {id: existingUser._id, username: existingUser.username, email, private_member: existingUser.private_member},
             process.env.JWT_ACCESS_SECRET!, 
             {expiresIn:"15m"}
         );
@@ -79,21 +80,19 @@ export const login = async(req: Request, res: Response): Promise<void>=> {
             expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
         });
 
-        const userResponse = existingUser.toObject();
-        delete userResponse.password;
-
+        const userToSend = existingUser.toObject() as any;
+        delete userToSend.password;
         res.status(200).json({
             success: true,
             message: "Login Successful",
-            user: userResponse
+            user: userToSend
         });
         
     } catch(err) {
-        console.error("[Login error]:", err);
+        if (process.env.NODE_ENV !== "production") console.error("[Login error]:", err);
         res.status(500).json({
             success: false,
             message: "Login Failed",
-            error: err
         });
     }
 }

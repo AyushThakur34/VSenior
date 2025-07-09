@@ -7,15 +7,18 @@ import { Response } from "express";
 import AuthRequest from "../utils/authRequest";
 import Reply from "src/models/Reply";
 import checkBody from "src/utils/checkBody";
+import dotenv from "dotenv";
+dotenv.config();
 
 export const createPost = async(req: AuthRequest, res: Response): Promise<void>=> {
     try {
-        const { title, body, channelID } = req.body;
+        const { channel_id } = req.body;
+        const title = req.body.title?.trim();
+        const body = req.body.body?.trim();
         const userID = req.user?._id;
+        const member = req.user?.private_member;
 
-        const heading = title.trim();
-        const content = body.trim();
-        if(!heading || !content || !channelID) { // handle missing fields
+        if(!title || !body || !channel_id) { // handle missing fields
             res.status(400).json({
                 success: false,
                 message: "Title, Body and UserID required"
@@ -23,28 +26,24 @@ export const createPost = async(req: AuthRequest, res: Response): Promise<void>=
             return ;
         }
 
-        const channel = await Channel.findById(channelID);
-        if(!channel) { // check for channel existence
+        const channel = await Channel.findById(channel_id).lean();
+        if(!channel) { // check for channel existance
             res.status(400).json({
                 success: false,
-                message: "Channel does not exist"
+                message: "Channel Does Not Exist"
             });
             return ;
         }
-
-        if(channel.type === "college") { // check if the user is member of this channel
-            const Member = channel.members.some(member => member.toString() === userID);
-            if(!Member) {
-                res.status(403).json({
-                    success: false,
-                    message: "You are not a member of this college channel"
-                });
-                return ;
-            }
+        else if(channel.type === "college" && !member) { // handle the case if post is for private channel
+            res.status(403).json({
+                success: false,
+                message: "You are not authorized to make posts in this channel"
+            });
+            return;
         }
-
-        const msg1 = checkBody(heading);
-        const msg2 = checkBody(content);
+        
+        const msg1 = checkBody(title);
+        const msg2 = checkBody(body);
         if(msg1 !== "valid" || msg2 !== "valid") { // validate title and body for spam or bad words
             res.status(400).json({
                 success: false,
@@ -54,33 +53,33 @@ export const createPost = async(req: AuthRequest, res: Response): Promise<void>=
         }   
 
         // if everything is passed create the post and add into respective channel
-        const newPost = await Post.create({title: heading, body: content, posted_by: userID, posted_on: channel._id}); 
-        await Channel.findByIdAndUpdate(channelID, {$push: {posts: newPost._id}});
+        const newPost = await Post.create({title, body, posted_by: userID, posted_on: channel._id}); 
+        await Channel.findByIdAndUpdate(channel_id, {$inc: {post_count: +1}}, {new: true}).lean();
 
         res.status(200).json({
             success: true,
             message: "Post Created Successfully",
-            post: newPost
+            post: newPost,
+            post_count: channel.post_count + 1
         });
 
     } catch(err) {
-        console.error("[Post Creation Error]:", err);
+        if (process.env.NODE_ENV !== "production") console.error("[Post Creation Error]:", err);
         res.status(500).json({
             success: false,
             message: "Post Creation Failed",
-            error: err
         });
     }
 }
 
 export const editPost = async(req: AuthRequest, res: Response):Promise<void>=> {
     try {
-        const { postID, title, body } = req.body;
+        const { postID } = req.body;
         const userID = req.user?._id;
+        const title = req.body.title?.trim();
+        const body = req.body.body?.trim();
 
-        const heading = title.trim();
-        const content = body.trim();
-        if(!postID || !heading || !content) { // check for missing fields
+        if(!postID || !title || !body) { // check for missing fields
             res.status(400).json({
                 success: false,
                 message: "Title, Body and UserID required"
@@ -88,8 +87,8 @@ export const editPost = async(req: AuthRequest, res: Response):Promise<void>=> {
             return ;
         }
 
-        const msg1 = checkBody(heading);
-        const msg2 = checkBody(content);
+        const msg1 = checkBody(title);
+        const msg2 = checkBody(body);
         if(msg1 !== "valid" || msg2 !== "valid") {
             res.status(400).json({
                 success: false,
@@ -98,27 +97,15 @@ export const editPost = async(req: AuthRequest, res: Response):Promise<void>=> {
             return ;
         }
 
-        const post = await Post.findById(postID);
-        const postedBy = post?.posted_by;
-        if(!post || postedBy?.toString() !== userID) {
+        const updatedPost = await Post.findOneAndUpdate({_id: postID, posted_by: userID}, {title, body}, {new: true}).lean();
+        if(!updatedPost) {
             res.status(403).json({
                 success: false,
-                message: "You are not allowed to alter this post"
+                message: "Unauthorized"
             });
             return ;
         }
 
-        const oldTitle = post.title;
-        const oldBody = post.body;
-        if(oldTitle == heading && oldBody == content) { // no need to retreive data if fields are unchanged
-            res.status(400).json({
-                success: false,
-                message: "Title and Body both are unchanged"
-            });
-            return ;
-        }
-
-        const updatedPost = await Post.findByIdAndUpdate(postID, {title: heading, body: content}, {new: true});
         res.status(200).json({
             success: true,
             message: "Post Updated Successfully",
@@ -126,85 +113,70 @@ export const editPost = async(req: AuthRequest, res: Response):Promise<void>=> {
         });
 
     } catch(err) {
-        console.error("[Post Editing Error]", err);
+        if (process.env.NODE_ENV !== "production") console.error("[Post Updation Error]", err);
         res.status(500).json({
             success: false,
-            message: "Post Editing Failed",
-            error: err
+            message: "Post Updation Failed",
         }); 
     }
 }
 
 export const deletePost = async(req: AuthRequest, res: Response):Promise<void>=> {
     try {
-        const { postID, channelID } = req.body;
+        const { postID } = req.body;
         const userID = req.user?._id;
 
-        if(!postID || !channelID) {
+        if(!postID) { // check for missing field
             res.status(400).json({
                 success: false,
-                message: "Missing PostID or ChannelID"
+                message: "PostID Required"
             });
             return ;
         }
 
-        const post = await Post.findById(postID);
-        const postedBy = post?.posted_by; // post can only be deleted by the user who posted it
-        if(!post || postedBy?.toString() !== userID) {
+        const post = await Post.findOne({_id: postID, posted_by: userID}).lean();
+        if(!post) {
             res.status(403).json({
                 success: false,
-                message: "You are not authorized to delete this post"
+                message: "Unauthorized"
             });
             return ;
         }
 
-        const channel = await Channel.findByIdAndUpdate(channelID, {$pull: {posts: postID}}); // delete from channel
-        if(!channel) {
-            res.status(400).json({
-                success: false,
-                message: "Post Does Not exist in the Channel"
-            });
-            return ;
-        }
+        const channel_id = post.posted_on;
 
-        const comments = await Comment.find({commented_on: postID}).select("_id");
+        // before deleting post itself delete all the data in the db dependent on it
+        // delete all the comments and likes/disliked on them but before that 
+        // delete all the replies on those comments and likes/dislikes on them then
+        // update post count in channel
+        const comments = await Comment.find({commented_on: postID}).select("_id").lean();
         const commentIDs = comments.map(c => c._id);
 
-        const replies = await Reply.find({replied_on: {$in: commentIDs}}).select("_id");
+        const replies = await Reply.find({replied_on: {$in: commentIDs}}).select("_id").lean();
         const replyIDs = replies.map(r => r._id);
 
-        // delete all likes and dislikes on comments
-        await Like.deleteMany({liked_on: {$in: commentIDs}, on_model: "Comment"});
-        await Dislike.deleteMany({disliked_on: {$in: commentIDs}, on_model: "Comment"});
+        const bulkIDs = [...replyIDs, ...commentIDs, postID];
+        await Promise.all([
+            Like.deleteMany({liked_on: {$in: bulkIDs}}),
+            Dislike.deleteMany({disliked_on: {$in: bulkIDs}}),
+            Reply.deleteMany({replied_on: {$in: commentIDs}}),
+            Comment.deleteMany({commented_on: postID}),
+            Post.findByIdAndDelete(postID),
+        ]);
 
-        // delete all likes and dislikes on replies
-        await Like.deleteMany({liked_on: {$in: replyIDs}, on_model: "Reply"});
-        await Dislike.deleteMany({disliked_on: {$in: replyIDs}, on_model: "Reply"});
-
-        // delete replies
-        await Reply.deleteMany({ _id: { $in: replyIDs } });
-
-        // delete comments
-        await Comment.deleteMany({ _id: { $in: commentIDs } });
-
-        // delete likes/dislikes on the post itself
-        await Like.deleteMany({liked_on: postID, on_model: "Post"});
-        await Dislike.deleteMany({disliked_on: postID, on_model: "Post"});
-
-        // delete post itself
-        await Post.findByIdAndDelete(postID);
+        const channel = await Channel.findByIdAndUpdate(channel_id, {$inc: {post_count: -1}}, {new: true}).lean();
 
         res.status(200).json({
             success: true,
-            message: "Post Deleted Successfully"
+            message: "Post Deleted Successfully",
+            post_count: channel?.post_count
         });
 
     } catch(err) {
-        console.error("[Post Deletion Error]", err);
+        if (process.env.NODE_ENV !== "production") console.error("[Post Deletion Error]", err);
         res.status(500).json({
             success: false,
             message: "Post Deletion Failed",
-            error: err
         }); 
     }
 }

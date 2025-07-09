@@ -17,7 +17,15 @@ dotenv.config();
 // verifiy user email by sending verification code
 export const signup = async(req: Request, res: Response): Promise<void>=> {
     try {
-        const { email, password } = req.body;
+        const { password } = req.body;
+        const email = req.body.email?.toLowerCase().trim();
+        if(!email || !password) { // handle missing fields
+            res.status(400).json({
+                success: false,
+                message: "Email and Password are Required"
+            });
+            return ;
+        }
 
         if(!validator.isEmail(email)) { // validate email format
             res.status(400).json({
@@ -76,13 +84,14 @@ export const signup = async(req: Request, res: Response): Promise<void>=> {
         res.status(200).json({
             success: true,
             message: "Email Verification Link Sent Successfully",
+            token: emailToken
         });
+        
     } catch(err) {
-        console.error("[Registration Error:]",err);
+        if (process.env.NODE_ENV !== "production") console.error("[Registration Error:]",err);
         res.status(500).json({
             success: false,
             message: "Error While Registering Email",
-            error: err
         });
     }
 };
@@ -90,14 +99,23 @@ export const signup = async(req: Request, res: Response): Promise<void>=> {
 // creates account after verifying user_email and username
 export const createAccount = async(req: Request, res: Response): Promise<void>=> {
     try {
-        const { token, accname } = req.body;
-        const username = accname.trim();
+        const { token } = req.body;
+        const username = req.body.username?.toLowerCase().trim();
         if(!token || !username) { // handle the case if token or username is missing from req body
             res.status(400).json({
                 success: false,
                 message: "Token and Username are Required"
             });
             return ;
+        }
+
+        const usernameRegex = /^[a-zA-Z0-9_]+$/; // test user case for validity 
+        if (!usernameRegex.test(username)) {
+            res.status(400).json({
+                success: false,
+                message: "Username can only contain letters, numbers, and underscores, with no spaces"
+            });
+            return;
         }
 
         let decoded: any;
@@ -107,7 +125,7 @@ export const createAccount = async(req: Request, res: Response): Promise<void>=>
             console.error(err);
             res.status(400).json({
                 success: false,
-                message: "Token Expired"
+                message: "Verification Token Expired or Invalid"
             });
             return ;
         }
@@ -124,16 +142,16 @@ export const createAccount = async(req: Request, res: Response): Promise<void>=>
         
         try { // username is marked as unique field so this will handle the case where multiple users are trying a race for same username
             const newUser = await User.create({ // create new user
-                email: email,
+                email,
                 password: hashedPassword, 
-                username: username
+                username
             })
             cache.del(email); // delete the stored hashed password
             cache.del(`lock:${email}`); // delete lock from email after the account is created
     
             // after a successfull signIn keep the user logged in
             const accessToken = jwt.sign( // form access token
-                { id: newUser._id, username: newUser.username, email },
+                { id: newUser._id, username: newUser.username, email, private_member: newUser.private_member },
                 process.env.JWT_ACCESS_SECRET!,
                 { expiresIn: "15m" }
             );
@@ -163,20 +181,19 @@ export const createAccount = async(req: Request, res: Response): Promise<void>=>
                 userID: newUser._id,
                 expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
             });
-    
-            const userResponse = newUser.toObject();
-            delete userResponse.password;
         
+            const userToSend = newUser.toObject() as any;
+            delete userToSend.password;
             res.status(200).json({
                 success: true,
                 message: "User Registered Successfully",
-                user: userResponse // send the created user body into response without it's stored password
+                user: userToSend // send the created user body into response without it's stored password
             });
         } catch(err: any) {
             if(err.code === 11000) {
                 if (err.keyPattern?.username) {
                     res.status(400).json({
-                    success: false,
+                    success: false, 
                     message: "Username Already Taken"
                     });
                     return ;
@@ -196,11 +213,10 @@ export const createAccount = async(req: Request, res: Response): Promise<void>=>
             return ;
         }
     } catch(err) {
-        console.error("[SingUp Error:]",err);
+        if (process.env.NODE_ENV !== "production") console.error("[SingUp Error:]",err);
         res.status(500).json({
             success: false,
             message: "Error While Creating Account",
-            error: err
         })
     }
 }

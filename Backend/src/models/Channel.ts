@@ -10,14 +10,11 @@ const ChannelSchema = new mongoose.Schema({
         enum: ["open", "college"],
         required: true
     },
-    members: [{
-        type: Types.ObjectId,
-        ref: "User",
-    }],
-    posts: [{
-        type: Types.ObjectId,
-        ref: "Post",
-    }]
+    post_count: {
+        type: Number,
+        default: 0
+    }
+    
 });
 
 const Channel = mongoose.model("Channel", ChannelSchema);

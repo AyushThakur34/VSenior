@@ -3,7 +3,8 @@ import mongoose, { Types } from "mongoose";
 const RefreshTokenSchema = new mongoose.Schema({
     token: {
         type: String,
-        required: true
+        required: true,
+        select: false
     },
     userID: {
         type: Types.ObjectId,
