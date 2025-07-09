@@ -1,11 +1,11 @@
-import User from "../models/User";
+import User from "../models/User.ts";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import validator from "validator";
-import { sendVerificationEmail } from "../utils/mailer";
-import isStrongPassword from "../utils/checkStrongPassword";
-import cache from '../utils/cache';
-import RefreshToken from "../models/RefreshToken";
+import { sendVerificationEmail } from "../utils/mailer.ts";
+import isStrongPassword from "../utils/checkStrongPassword.ts";
+import cache from "../utils/cache.ts";
+import RefreshToken from "../models/RefreshToken.ts";
 import dotenv from "dotenv";
 import { Request, Response } from "express";
 dotenv.config();

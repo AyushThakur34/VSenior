@@ -1,13 +1,13 @@
 import express from "express";
-import { signup, createAccount } from "../controllers/signup";
-import { login } from "../controllers/login";
-import { refreshToken } from "../controllers/refreshToken";
-import { createPost, editPost, deletePost } from "../controllers/post";
-import { verifyAccessToken } from "../middleware/auth";
-import { addLike, removeLike } from "src/controllers/like";
-import { createComment, editComment, deleteComment } from "src/controllers/comment";
-import { AddCommentRateLimiter, UpdateCommentRateLimiter, DeleteCommentRateLimiter } from "src/middleware/commentRateLimiter";
-import { SignupRateLimiter } from "src/middleware/signupRateLimiter";
+import { signup, createAccount } from "../controllers/signup.ts";
+import { login } from "../controllers/login.ts";
+import { refreshToken } from "../controllers/refreshToken.ts";
+import { createPost, editPost, deletePost } from "../controllers/post.ts";
+import { verifyAccessToken } from "../middleware/auth.ts";
+import { addLike, removeLike } from "../controllers/like.ts";
+import { createComment, editComment, deleteComment } from "../controllers/comment.ts";
+import { AddCommentRateLimiter, UpdateCommentRateLimiter, DeleteCommentRateLimiter } from "../middleware/commentRateLimiter.ts";
+import { SignupRateLimiter } from "../middleware/signupRateLimiter.ts";
 
 const route = express.Router();
 

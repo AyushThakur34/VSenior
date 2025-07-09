@@ -1,5 +1,5 @@
-import RefreshToken from "../models/RefreshToken";
-import User from "../models/User";
+import RefreshToken from "../models/RefreshToken.ts";
+import User from "../models/User.ts";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import { Request, Response } from "express";

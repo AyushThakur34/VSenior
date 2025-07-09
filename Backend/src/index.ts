@@ -1,6 +1,6 @@
 import express from "express";
-import route from "./route/VSenior";
-import connectWithDB from "./config/database";
+import route from "./route/VSenior.ts";
+import connectWithDB from "./config/database.ts";
 import dotenv from "dotenv";
 dotenv.config();
 

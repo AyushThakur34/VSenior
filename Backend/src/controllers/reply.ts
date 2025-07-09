@@ -1,11 +1,11 @@
-import Comment from "../models/Comment";
-import AuthRequest from "src/utils/authRequest";
+import Comment from "../models/Comment.ts";
+import AuthRequest from "../utils/authRequest.ts";
 import { Response } from "express";
-import Reply from "src/models/Reply";
-import checkBody from "src/utils/checkBody";
-import Like from "src/models/Like";
-import Dislike from "src/models/Dislike";
-import Channel from "src/models/Channel";
+import Reply from "../models/Reply.ts";
+import checkBody from "../utils/checkBody.ts";
+import Like from "../models/Like.ts";
+import Dislike from "../models/Dislike.ts";
+import Channel from "../models/Channel.ts";
 
 export const createReply = async(req: AuthRequest, res: Response): Promise<void> => {
     try {

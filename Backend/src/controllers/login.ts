@@ -1,9 +1,9 @@
-import User from "../models/User";
+import User from "../models/User.ts";
 import bcrypt from "bcrypt";
 import validator from "validator";
 import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
-import RefreshToken from "../models/RefreshToken";
+import RefreshToken from "../models/RefreshToken.ts";
 import { Request, Response } from "express";
 dotenv.config();
 

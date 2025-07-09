@@ -1,11 +1,11 @@
-import Like from "src/models/Like";
-import Dislike from "src/models/Dislike";
+import Like from "../models/Like.ts";
+import Dislike from "../models/Dislike.ts";
 import { Response } from "express";
-import AuthRequest from "src/utils/authRequest";
-import Channel from "src/models/Channel";
-import Post from "src/models/Post";
-import Comment from "src/models/Comment";
-import Reply from "src/models/Reply";
+import AuthRequest from "../utils/authRequest.ts";
+import Channel from "../models/Channel.ts";
+import Post from "../models/Post.ts";
+import Comment from "../models/Comment.ts";
+import Reply from "../models/Reply.ts";
 import dotenv from "dotenv";
 dotenv.config();
 
