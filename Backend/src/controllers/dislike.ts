@@ -32,15 +32,6 @@ export const addDislike = async(req: AuthRequest, res: Response):Promise<void>=>
             return ;
         }
 
-        const alreadyDisliked = await Like.findOne({disliked_by: userID, disliked_on: disliked_on, on_model}).lean();
-        if(alreadyDisliked) { // handle if the item is already liked by the same user
-            res.status(400).json({
-                success: false,
-                message: "Parent is already liked by the user"
-            }); 
-            return ;
-        }
-                
         let parent: any;
         if(on_model === "Post") parent = await Post.findByIdAndUpdate(disliked_on, {$inc: {dislike_count: +1}});
         else if(on_model === "Comment") parent = await Comment.findByIdAndUpdate(disliked_on, {$inc: {dislike_count: +1}});
@@ -55,6 +46,15 @@ export const addDislike = async(req: AuthRequest, res: Response):Promise<void>=>
             return ;
         }
 
+        const alreadyDisliked = await Like.findOne({disliked_by: userID, disliked_on: parent._id, on_model}).lean();
+        if(alreadyDisliked) { // handle if the item is already liked by the same user
+            res.status(400).json({
+                success: false,
+                message: "Parent is already liked by the user"
+            }); 
+            return ;
+        }      
+
         const dislike = await Dislike.create({ // if everything is passed create like
             disliked_by: userID,
             disliked_on: parent._id,
@@ -64,17 +64,17 @@ export const addDislike = async(req: AuthRequest, res: Response):Promise<void>=>
         let parentDoc: any;
         if(on_model === "Post") {
             parentDoc = await Post.findById(parent._id).lean()
-            const prevLike = await Like.findOneAndDelete({liked_on: disliked_on, liked_by: userID, on_model}).lean();
+            const prevLike = await Like.findOneAndDelete({liked_on: parent._id, liked_by: userID, on_model}).lean();
             if(prevLike) parentDoc = await Post.findByIdAndUpdate(parent._id, {$inc:{like_count: -1}}, {new: true}).lean();
         }
         else if(on_model === "Comment") {
             parentDoc = await Comment.findById(parent._id).lean()
-            const prevLike = await Like.findOneAndDelete({liked_on: disliked_on, liked_by: userID, on_model}).lean();
+            const prevLike = await Like.findOneAndDelete({liked_on: parent._id, liked_by: userID, on_model}).lean();
             if(prevLike) parentDoc = await Comment.findByIdAndUpdate(parent._id, {$inc:{like_count: -1}}, {new: true}).lean();
         }
         else {
             parentDoc = await Reply.findById(parent._id).lean()
-            const prevLike = await Like.findOneAndDelete({liked_on: disliked_on, liked_by: userID, on_model}).lean();
+            const prevLike = await Like.findOneAndDelete({liked_on: parent._id, liked_by: userID, on_model}).lean();
             if(prevLike) parentDoc = await Reply.findByIdAndUpdate(parent._id, {$inc:{like_count: -1}}, {new: true}).lean();
         }
         
@@ -118,15 +118,6 @@ export const removeLike = async(req: AuthRequest, res: Response):Promise<void>=>
             return ;
         }
 
-        const disliked = await Dislike.findOneAndDelete({disliked_by: userID, disliked_on: disliked_on, on_model}).lean() // check if such like exists in db
-        if(!disliked) { // handle the case like does not exist
-            res.status(400).json({
-                success: false,
-                message: "Parent is Not Disliked"
-            });
-            return ;
-        }
-
         let parent: any;
         if(on_model === "Post") parent = await Post.findByIdAndUpdate(disliked_on, {$inc: {dislike_count: -1}});
         else if(on_model === "Comment") parent = await Comment.findByIdAndUpdate(disliked_on, {$inc: {dislike_count: -1}});
@@ -137,6 +128,15 @@ export const removeLike = async(req: AuthRequest, res: Response):Promise<void>=>
             res.status(404).json({
                 success: false,
                 message: "Parent Not Found"
+            });
+            return ;
+        }
+
+        const disliked = await Dislike.findOneAndDelete({disliked_by: userID, disliked_on: parent._id, on_model}).lean() // check if such like exists in db
+        if(!disliked) { // handle the case like does not exist
+            res.status(400).json({
+                success: false,
+                message: "Parent is Not Disliked"
             });
             return ;
         }

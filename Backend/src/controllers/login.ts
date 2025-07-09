@@ -9,7 +9,7 @@ dotenv.config();
 
 export const login = async(req: Request, res: Response): Promise<void>=> {
     try {
-        const password = req.body.passed?.trim(); 
+        const password = req.body.password?.trim(); 
         const email = req.body.email?.toLowerCase().trim();
         if(!email || !password) { // handle missing fields
             res.status(400).json({
@@ -48,7 +48,7 @@ export const login = async(req: Request, res: Response): Promise<void>=> {
         }
 
         const accessToken = jwt.sign( // sign an access token
-            {id: existingUser._id, username: existingUser.username, email, private_member: existingUser.private_member},
+            {_id: existingUser._id, username: existingUser.username, email, private_member: existingUser.private_member},
             process.env.JWT_ACCESS_SECRET!, 
             {expiresIn:"15m"}
         );
@@ -61,7 +61,7 @@ export const login = async(req: Request, res: Response): Promise<void>=> {
         });
 
         const refreshToken = jwt.sign( // make a refresh token
-            {id: existingUser._id},
+            {_id: existingUser._id},
             process.env.JWT_REFRESH_SECRET!,
             {expiresIn:"7d"}
         )

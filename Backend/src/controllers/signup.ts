@@ -76,7 +76,8 @@ export const signup = async(req: Request, res: Response): Promise<void>=> {
             console.error(err);
             res.status(400).json({
                 success: false,
-                message: "Failed to Send Verification Email"
+                message: "Failed to Send Verification Email",
+                token: emailToken
             });
             return ;
         }
@@ -151,7 +152,7 @@ export const createAccount = async(req: Request, res: Response): Promise<void>=>
     
             // after a successfull signIn keep the user logged in
             const accessToken = jwt.sign( // form access token
-                { id: newUser._id, username: newUser.username, email, private_member: newUser.private_member },
+                {_id: newUser._id, username: newUser.username, email, private_member: newUser.private_member },
                 process.env.JWT_ACCESS_SECRET!,
                 { expiresIn: "15m" }
             );
@@ -164,7 +165,7 @@ export const createAccount = async(req: Request, res: Response): Promise<void>=>
             });
     
             const refreshToken = jwt.sign( // make a refresh token
-                { id: newUser._id },
+                { _id: newUser._id },
                 process.env.JWT_REFRESH_SECRET!,
                 { expiresIn: "7d" }
             );

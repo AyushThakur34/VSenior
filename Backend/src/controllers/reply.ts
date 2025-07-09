@@ -40,9 +40,18 @@ export const createReply = async(req: AuthRequest, res: Response): Promise<void>
             return ;
         }
 
+        const existingComment = await Comment.findById(replied_on).lean();
+        if(!existingComment) {
+            res.status(400).json({
+                success: false,
+                message: "Comment does not exist"
+            });
+            return ;
+        }
+
         const duplicate = await Reply.findOne({
             body,
-            replied_on,
+            replied_on: existingComment._id,
             replied_by: userID
         });
         if(duplicate) {
@@ -53,18 +62,11 @@ export const createReply = async(req: AuthRequest, res: Response): Promise<void>
             return ;
         }
 
-        const comment = await Comment.findByIdAndUpdate(replied_on, {$inc: {reply_count: +1}}, {new:true});
-        if(!comment) {
-            res.status(400).json({
-                success: false,
-                message: "Comment does not exist"
-            });
-            return ;
-        }
+        const comment = await Comment.findByIdAndUpdate(existingComment._id, {$inc: {reply_count: +1}}, {new:true}).lean();
 
         const reply = await Reply.create({
             body,
-            replied_on,
+            replied_on: existingComment._id,
             replied_by: userID,
         });
 
@@ -72,7 +74,7 @@ export const createReply = async(req: AuthRequest, res: Response): Promise<void>
             success: true,
             message: "Reply added Successfully",
             reply: reply,
-            reply_count: comment.reply_count
+            reply_count: comment?.reply_count
         });
 
     } catch(err) {
@@ -134,7 +136,7 @@ export const updateReply = async(req: AuthRequest, res: Response): Promise<void>
             }   
         }
 
-        if(reply.replied_by?.toString() !== userID) { // check for user authorization
+        if(reply.replied_by !== userID) { // check for user authorization
             res.status(400).json({
                 success: false,
                 message: "Unauthorized"
@@ -142,7 +144,7 @@ export const updateReply = async(req: AuthRequest, res: Response): Promise<void>
             return ;
         }
 
-        const updatedReply = await Reply.findByIdAndUpdate(reply_id, {body}, {new: true});
+        const updatedReply = await Reply.findByIdAndUpdate(reply_id, {body}, {new: true}).lean();
         res.status(200).json({
             success: true,
             message: "Reply Updated Successfully",
@@ -172,7 +174,7 @@ export const DeleteReply = async(req: AuthRequest, res: Response): Promise<void>
             return ;
         }
 
-        const channel = await Channel.findById(channel_id); // handle private college channel
+        const channel = await Channel.findById(channel_id).lean(); // handle private college channel
         if(channel?.type === "college" && !member) {
             res.status(403).json({
                 success: false,
@@ -181,7 +183,7 @@ export const DeleteReply = async(req: AuthRequest, res: Response): Promise<void>
             return ;
         }
 
-        const reply = await Reply.findById(reply_id);
+        const reply = await Reply.findById(reply_id).lean();
         if(!reply) {
             res.status(400).json({
                 success: false,
@@ -189,7 +191,7 @@ export const DeleteReply = async(req: AuthRequest, res: Response): Promise<void>
             });
             return ;
         }
-        else if(reply.replied_by?.toString() !== user) { // check for user authority over reply
+        else if(reply.replied_by !== user) { // check for user authority over reply
             res.status(403).json({
                 success: false,
                 message: "Unauthorized"

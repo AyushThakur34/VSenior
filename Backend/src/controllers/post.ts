@@ -52,7 +52,7 @@ export const createPost = async(req: AuthRequest, res: Response): Promise<void>=
             return ;
         }   
 
-        // if everything is passed create the post and add into respective channel
+        // if everything is passed create t he post and add into respective channel
         const newPost = await Post.create({title, body, posted_by: userID, posted_on: channel._id}); 
         await Channel.findByIdAndUpdate(channel_id, {$inc: {post_count: +1}}, {new: true}).lean();
 
@@ -74,12 +74,12 @@ export const createPost = async(req: AuthRequest, res: Response): Promise<void>=
 
 export const editPost = async(req: AuthRequest, res: Response):Promise<void>=> {
     try {
-        const { postID } = req.body;
+        const post_id = req.body.post_id;
         const userID = req.user?._id;
         const title = req.body.title?.trim();
         const body = req.body.body?.trim();
 
-        if(!postID || !title || !body) { // check for missing fields
+        if(!post_id || !title || !body) { // check for missing fields
             res.status(400).json({
                 success: false,
                 message: "Title, Body and UserID required"
@@ -97,9 +97,9 @@ export const editPost = async(req: AuthRequest, res: Response):Promise<void>=> {
             return ;
         }
 
-        const updatedPost = await Post.findOneAndUpdate({_id: postID, posted_by: userID}, {title, body}, {new: true}).lean();
+        const updatedPost = await Post.findOneAndUpdate({_id: post_id, posted_by: userID}, {title, body}, {new: true}).lean();
         if(!updatedPost) {
-            res.status(403).json({
+            res.status(401).json({
                 success: false,
                 message: "Unauthorized"
             });
@@ -123,18 +123,18 @@ export const editPost = async(req: AuthRequest, res: Response):Promise<void>=> {
 
 export const deletePost = async(req: AuthRequest, res: Response):Promise<void>=> {
     try {
-        const { postID } = req.body;
+        const { post_id } = req.body;
         const userID = req.user?._id;
 
-        if(!postID) { // check for missing field
+        if(!post_id) { // check for missing field
             res.status(400).json({
                 success: false,
-                message: "PostID Required"
+                message: "post_id Required"
             });
             return ;
         }
 
-        const post = await Post.findOne({_id: postID, posted_by: userID}).lean();
+        const post = await Post.findOne({_id: post_id, posted_by: userID}).lean();
         if(!post) {
             res.status(403).json({
                 success: false,
@@ -149,19 +149,19 @@ export const deletePost = async(req: AuthRequest, res: Response):Promise<void>=>
         // delete all the comments and likes/disliked on them but before that 
         // delete all the replies on those comments and likes/dislikes on them then
         // update post count in channel
-        const comments = await Comment.find({commented_on: postID}).select("_id").lean();
+        const comments = await Comment.find({commented_on: post._id}).select("_id").lean();
         const commentIDs = comments.map(c => c._id);
 
         const replies = await Reply.find({replied_on: {$in: commentIDs}}).select("_id").lean();
         const replyIDs = replies.map(r => r._id);
 
-        const bulkIDs = [...replyIDs, ...commentIDs, postID];
+        const bulkIDs = [...replyIDs, ...commentIDs, post_id];
         await Promise.all([
             Like.deleteMany({liked_on: {$in: bulkIDs}}),
             Dislike.deleteMany({disliked_on: {$in: bulkIDs}}),
             Reply.deleteMany({replied_on: {$in: commentIDs}}),
-            Comment.deleteMany({commented_on: postID}),
-            Post.findByIdAndDelete(postID),
+            Comment.deleteMany({commented_on: post._id}),
+            Post.findByIdAndDelete(post_id),
         ]);
 
         const channel = await Channel.findByIdAndUpdate(channel_id, {$inc: {post_count: -1}}, {new: true}).lean();

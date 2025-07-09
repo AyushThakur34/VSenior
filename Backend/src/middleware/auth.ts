@@ -23,7 +23,6 @@ export const verifyAccessToken = async(req: AuthRequest, res: Response, next: Ne
         res.status(401).json({
             success: false,
             message: "Invalid or Expired Token",
-            error: err
         }); 
     }
 }

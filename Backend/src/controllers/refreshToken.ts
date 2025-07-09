@@ -53,7 +53,7 @@ export const refreshToken = async(req: Request, res: Response): Promise<void>=> 
             return ;
         }
 
-        const newToken = jwt.sign({id: existingUser._id}, process.env.JWT_REFRESH_SECRET!, {expiresIn:"7d"}); // generate new refresh token
+        const newToken = jwt.sign({_id: existingUser._id}, process.env.JWT_REFRESH_SECRET!, {expiresIn:"7d"}); // generate new refresh token
         await RefreshToken.findByIdAndUpdate(oldToken._id, {token: newToken, expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)}); // replace the old in the db with new token
 
         res.cookie("refreshToken", newToken, { // send new refresh token in cookie
@@ -64,7 +64,7 @@ export const refreshToken = async(req: Request, res: Response): Promise<void>=> 
         });
 
         const newAccessToken = jwt.sign( // assign new access token
-            {id: existingUser._id, username: existingUser.username, email: existingUser.email, private_member: existingUser.private_member},
+            {_id: existingUser._id, username: existingUser.username, email: existingUser.email, private_member: existingUser.private_member},
             process.env.JWT_ACCESS_SECRET!, 
             {expiresIn:"15m"}
         );
