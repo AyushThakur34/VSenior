@@ -49,19 +49,6 @@ export const createReply = async(req: AuthRequest, res: Response): Promise<void>
             return ;
         }
 
-        const duplicate = await Reply.findOne({
-            body,
-            replied_on: existingComment._id,
-            replied_by: userID
-        });
-        if(duplicate) {
-            res.status(400).json({
-                success: false,
-                message: "Reply Already Exists"
-            })
-            return ;
-        }
-
         const comment = await Comment.findByIdAndUpdate(existingComment._id, {$inc: {reply_count: +1}}, {new:true}).lean();
 
         const reply = await Reply.create({
@@ -86,7 +73,7 @@ export const createReply = async(req: AuthRequest, res: Response): Promise<void>
     }
 }
 
-export const updateReply = async(req: AuthRequest, res: Response): Promise<void> => {
+export const editReply = async(req: AuthRequest, res: Response): Promise<void> => {
     try {
         const { reply_id, channel_id }  = req.body;
         const body = req.body.body?.trim();
@@ -160,7 +147,7 @@ export const updateReply = async(req: AuthRequest, res: Response): Promise<void>
     }
 }
 
-export const DeleteReply = async(req: AuthRequest, res: Response): Promise<void> => {
+export const deleteReply = async(req: AuthRequest, res: Response): Promise<void> => {
     try {
         const { reply_id, channel_id } = req.body;
         const user = req.user?._id;

@@ -8,6 +8,7 @@ import AuthRequest from "../utils/authRequest.ts";
 import Reply from "../models/Reply.ts";
 import checkBody from "../utils/checkBody.ts";
 import dotenv from "dotenv";
+import User from "../models/User.ts";
 dotenv.config();
 
 export const createPost = async(req: AuthRequest, res: Response): Promise<void>=> {
@@ -55,12 +56,13 @@ export const createPost = async(req: AuthRequest, res: Response): Promise<void>=
         // if everything is passed create t he post and add into respective channel
         const newPost = await Post.create({title, body, posted_by: userID, posted_on: channel._id}); 
         await Channel.findByIdAndUpdate(channel_id, {$inc: {post_count: +1}}, {new: true}).lean();
+        await User.findByIdAndUpdate(userID, {$inc: {post_count: +1}}, {new: true}).lean();
 
         res.status(200).json({
             success: true,
             message: "Post Created Successfully",
             post: newPost,
-            post_count: channel.post_count + 1
+            channel_post_count: channel.post_count + 1
         });
 
     } catch(err) {
@@ -165,11 +167,12 @@ export const deletePost = async(req: AuthRequest, res: Response):Promise<void>=>
         ]);
 
         const channel = await Channel.findByIdAndUpdate(channel_id, {$inc: {post_count: -1}}, {new: true}).lean();
+        await User.findByIdAndUpdate(userID, {$inc: {post_count: -1}}, {new: true}).lean();
 
         res.status(200).json({
             success: true,
             message: "Post Deleted Successfully",
-            post_count: channel?.post_count
+            channel_post_count: channel?.post_count
         });
 
     } catch(err) {

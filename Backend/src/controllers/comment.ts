@@ -40,20 +40,6 @@ export const createComment = async(req: AuthRequest, res: Response):Promise<void
             });
             return ;
         }
-        
-        // handle duplicate comments by the same user
-        const duplicate = await Comment.findOne({ 
-            body,
-            comment_by: userID,
-            commented_on: parent._id
-        });
-        if(duplicate) {
-            res.status(400).json({
-                success: false,
-                message: "Comment Already Exists"
-            });
-            return ;
-        }
 
         const channel = await Channel.findById(parent.posted_on).lean();
         if(!channel || channel.type === "college" && !member) {
