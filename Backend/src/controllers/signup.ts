@@ -185,6 +185,7 @@ export const createAccount = async(req: Request, res: Response): Promise<void>=>
         
             const userToSend = newUser.toObject() as any;
             delete userToSend.password;
+            delete userToSend._id;
             res.status(200).json({
                 success: true,
                 message: "User Registered Successfully",

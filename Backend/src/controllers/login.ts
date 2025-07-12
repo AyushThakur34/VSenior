@@ -82,6 +82,7 @@ export const login = async(req: Request, res: Response): Promise<void>=> {
 
         const userToSend = existingUser.toObject() as any;
         delete userToSend.password;
+        delete userToSend._id;
         res.status(200).json({
             success: true,
             message: "Login Successful",

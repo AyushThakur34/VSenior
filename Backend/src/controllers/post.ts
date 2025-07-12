@@ -36,7 +36,7 @@ export const createPost = async(req: AuthRequest, res: Response): Promise<void>=
             return ;
         }
         else if(channel.type === "college" && !member) { // handle the case if post is for private channel
-            res.status(403).json({
+            res.status(401).json({
                 success: false,
                 message: "You are not authorized to make posts in this channel"
             });
@@ -138,7 +138,7 @@ export const deletePost = async(req: AuthRequest, res: Response):Promise<void>=>
 
         const post = await Post.findOne({_id: post_id, posted_by: userID}).lean();
         if(!post) {
-            res.status(403).json({
+            res.status(401).json({
                 success: false,
                 message: "Unauthorized"
             });

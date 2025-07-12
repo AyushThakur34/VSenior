@@ -24,7 +24,7 @@ export const createReply = async(req: AuthRequest, res: Response): Promise<void>
 
         const channel = await Channel.findById(channel_id); // check for private college channel
         if(channel?.type === "college" && !member) {
-            res.status(403).json({
+            res.status(401).json({
                 success: false,
                 message: "You are not authorized to make changes in this channel"
             });
@@ -90,52 +90,35 @@ export const editReply = async(req: AuthRequest, res: Response): Promise<void> =
 
         const channel = await Channel.findById(channel_id); // handle private college channel
         if(channel?.type === "college" && !member) {
-            res.status(403).json({
+            res.status(401).json({
                 success: false,
                 message: "You are not authorized to make changes in this channel"
             });
             return ;
         }
 
-        const reply = await Reply.findById(reply_id); // check if reply exist
-        if(!reply) {
+        const msg = checkBody(body); // check for valid content
+        if(msg != "valid") {
             res.status(400).json({
                 success: false,
-                message: "Reply Does Not Exist"
-            });
+                message: msg
+            })
             return ;
-        }
-        else if(body === reply.body) { // check for unchanged body
-            res.status(400).json({
-                success: false,
-                message: "Body Unchanged"
-            });
-            return ;
-        }
-        else {
-            const msg = checkBody(body); // check for valid content
-            if(msg != "valid") {
-                res.status(400).json({
-                    success: false,
-                    message: msg
-                })
-                return ;
-            }   
-        }
+        }   
 
-        if(reply.replied_by !== userID) { // check for user authorization
-            res.status(400).json({
+        const reply = await Reply.findOneAndUpdate({_id: reply_id, replied_by: userID}, {body}, {new: true}).lean();
+        if(!reply) {
+            res.status(401).json({
                 success: false,
                 message: "Unauthorized"
             });
             return ;
         }
 
-        const updatedReply = await Reply.findByIdAndUpdate(reply_id, {body}, {new: true}).lean();
         res.status(200).json({
             success: true,
             message: "Reply Updated Successfully",
-            reply: updatedReply
+            reply: reply
         });
 
     } catch(err) {
@@ -163,7 +146,7 @@ export const deleteReply = async(req: AuthRequest, res: Response): Promise<void>
 
         const channel = await Channel.findById(channel_id).lean(); // handle private college channel
         if(channel?.type === "college" && !member) {
-            res.status(403).json({
+            res.status(401).json({
                 success: false,
                 message: "You are not authorized to make changes in this channel"
             });
@@ -179,7 +162,7 @@ export const deleteReply = async(req: AuthRequest, res: Response): Promise<void>
             return ;
         }
         else if(reply.replied_by !== user) { // check for user authority over reply
-            res.status(403).json({
+            res.status(401).json({
                 success: false,
                 message: "Unauthorized"
             });

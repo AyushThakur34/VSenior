@@ -10,6 +10,7 @@ import { rateLimiterLow } from "../middleware/rateLimiterLow.ts";
 import { rateLimiterModerate } from "../middleware/rateLimiterModerate.ts";
 import { rateLimiterHigh } from "../middleware/rateLimiterHigh.ts";
 import { createReply, editReply, deleteReply } from "../controllers/reply.ts";
+import { addDislike, removeDislike } from "../controllers/dislike.ts";
 
 const route = express.Router();
 
@@ -27,6 +28,8 @@ route.delete("/post-delete", rateLimiterHigh, verifyAccessToken, deletePost);
 // like/dislike
 route.post("/like-add", rateLimiterHigh, verifyAccessToken, addLike);
 route.delete("/like-remove", rateLimiterHigh, verifyAccessToken, removeLike)
+route.post("/dislike-add", rateLimiterHigh, verifyAccessToken, addDislike);
+route.delete("/dislike-remove", rateLimiterHigh, verifyAccessToken, removeDislike)
 
 // comment
 route.post("/comment-create",rateLimiterLow, verifyAccessToken, createComment);

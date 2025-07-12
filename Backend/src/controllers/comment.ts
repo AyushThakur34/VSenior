@@ -43,9 +43,9 @@ export const createComment = async(req: AuthRequest, res: Response):Promise<void
 
         const channel = await Channel.findById(parent.posted_on).lean();
         if(!channel || channel.type === "college" && !member) {
-            res.status(403).json({
+            res.status(401).json({
                 success: false,
-                message: "Unauthorized"
+                message: "You are not authorized to make changes in this channel"
             });
             return ;
         }
@@ -89,29 +89,6 @@ export const editComment = async(req: AuthRequest, res: Response):Promise<void> 
             return ;
         }
 
-        const comment = await Comment.findById(comment_id);
-        if(!comment) { // check if such comment exists
-            res.status(404).json({
-                success: false,
-                message: "Comment Not Found"
-            });
-            return ;
-        }
-        else if(comment.comment_by !== userID) { // check if comment is created by the same user if not then the user is not authorized
-            res.status(403).json({
-                success: false,
-                message: "You are not authorized to make changes to this comment"
-            });
-            return ;
-        }
-        else if(comment.body === body) {
-            res.status(400).json({
-                success: false,
-                message: "Body Unchanged"
-            });
-            return ;
-        }
-
         const msg = checkBody(body); // check content for spam or bad words
         if(msg !== "valid") {
             res.status(400).json({
@@ -120,14 +97,20 @@ export const editComment = async(req: AuthRequest, res: Response):Promise<void> 
             });
             return ;
         }
-
-        // if everything is right update the comment
-        const updatedComment = await Comment.findByIdAndUpdate(comment_id, {body}, {new:true});
+        
+        const comment = await Comment.findOneAndUpdate({_id: comment_id, comment_by: userID}, {body}, {new:true}).lean();
+        if(!comment) { // check if such comment exists
+            res.status(401).json({
+                success: false,
+                message: "Unauthorized"
+            });
+            return ;
+        }
 
         res.status(200).json({
             success: true,
             message: "Comment Updated Successfully",
-            comment: updatedComment
+            comment: comment
         });
     } catch(err) {
         if (process.env.NODE_ENV !== "production") console.error("[Comment Updation Error]:", err);
@@ -153,15 +136,15 @@ export const deleteComment = async(req: AuthRequest, res: Response):Promise<void
 
         const comment = await Comment.findById(comment_id).lean();
         if(!comment) { // check for comment existence
-            res.status(404).json({
+            res.status(400).json({
                 success: false,
-                message: "Comment Not Found"
+                message: "Comment Does Not Exist"
             });
             return ;
         }
 
         if(comment.comment_by  !== user) { // check if user is the one who created the comment only then the user would be authorized
-            res.status(403).json({
+            res.status(401).json({
                 success: false,
                 message: "You are not authorized to alter this comment"
             });

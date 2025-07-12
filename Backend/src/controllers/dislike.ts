@@ -95,7 +95,7 @@ export const addDislike = async(req: AuthRequest, res: Response):Promise<void>=>
     }
 }
 
-export const removeLike = async(req: AuthRequest, res: Response):Promise<void>=> {
+export const removeDislike = async(req: AuthRequest, res: Response):Promise<void>=> {
     try {
         const { disliked_on, on_model, channel_id } = req.body;
         const userID = req.user?._id;
