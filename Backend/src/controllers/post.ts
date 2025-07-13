@@ -127,6 +127,7 @@ export const deletePost = async(req: AuthRequest, res: Response):Promise<void>=>
     try {
         const { post_id } = req.body;
         const userID = req.user?._id;
+        const role = req.user?.role;
 
         if(!post_id) { // check for missing field
             res.status(400).json({
@@ -136,11 +137,19 @@ export const deletePost = async(req: AuthRequest, res: Response):Promise<void>=>
             return ;
         }
 
-        const post = await Post.findOne({_id: post_id, posted_by: userID}).lean();
+        const post = await Post.findById(post_id).lean();
         if(!post) {
+            res.status(400).json({
+                success: false,
+                message: "Post Does Not Exist"
+            });
+            return ;
+        }
+
+        if(role === "student" && post.posted_by !== userID) {
             res.status(401).json({
                 success: false,
-                message: "Unauthorized"
+                message: "You are not authorized to delete this post"
             });
             return ;
         }

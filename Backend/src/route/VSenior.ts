@@ -11,8 +11,23 @@ import { rateLimiterModerate } from "../middleware/rateLimiterModerate.ts";
 import { rateLimiterHigh } from "../middleware/rateLimiterHigh.ts";
 import { createReply, editReply, deleteReply } from "../controllers/reply.ts";
 import { addDislike, removeDislike } from "../controllers/dislike.ts";
+import { boostrapAdmin } from "../controllers/boostrspAdmin.ts";
+import { adminOnly } from "../middleware/adminOnly.ts";
+import { promoteUser, demoteAdmin, getAllAdmins } from "../controllers/admin.ts";
+import { createChannel, editChannel, deleteChannel } from "../controllers/channel.ts";
 
 const route = express.Router();
+
+// admin 
+route.post("/bootstrap-admin", boostrapAdmin);
+route.put("user-promote", verifyAccessToken, adminOnly, promoteUser);
+route.put("admin-demote", verifyAccessToken, adminOnly, demoteAdmin);
+route.get("admins", verifyAccessToken, adminOnly, getAllAdmins);
+
+// channel
+route.post("/channel-create", verifyAccessToken, adminOnly, createChannel);
+route.post("/channel-edit", verifyAccessToken, adminOnly, editChannel);
+route.post("/channel-delete", verifyAccessToken, adminOnly, deleteChannel);
 
 // access
 route.post("/signup", rateLimiterLow, signup);

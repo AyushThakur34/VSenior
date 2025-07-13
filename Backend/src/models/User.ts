@@ -35,6 +35,11 @@ const UserSchema = new mongoose.Schema({
     private_member: {
         type: Boolean,
         default: false
+    },
+    role: {
+        type: String,
+        enum : ["student", "admin", "super_admin"],
+        default: "Student"
     }
 });
 

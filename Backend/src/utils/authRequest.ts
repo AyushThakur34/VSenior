@@ -6,7 +6,8 @@ interface AuthRequest extends Request {
         _id: Types.ObjectId,
         email: string,
         username: string,
-        private_member: boolean
+        private_member: boolean,
+        role: string
     }
 }
 

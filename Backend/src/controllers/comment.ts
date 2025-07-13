@@ -125,6 +125,7 @@ export const deleteComment = async(req: AuthRequest, res: Response):Promise<void
     try {
         const { comment_id } = req.body;
         const user = req.user?._id;
+        const role = req.user?.role;
 
         if(!comment_id) {// missing field check
             res.status(400).json({
@@ -143,7 +144,7 @@ export const deleteComment = async(req: AuthRequest, res: Response):Promise<void
             return ;
         }
 
-        if(comment.comment_by  !== user) { // check if user is the one who created the comment only then the user would be authorized
+        if(role === "student" && comment.comment_by !== user) { // check if user is the one who created the comment only then the user would be authorized
             res.status(401).json({
                 success: false,
                 message: "You are not authorized to alter this comment"

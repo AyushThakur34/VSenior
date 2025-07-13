@@ -64,7 +64,7 @@ export const refreshToken = async(req: Request, res: Response): Promise<void>=> 
         });
 
         const newAccessToken = jwt.sign( // assign new access token
-            {_id: existingUser._id, username: existingUser.username, email: existingUser.email, private_member: existingUser.private_member},
+            {_id: existingUser._id, username: existingUser.username, email: existingUser.email, private_member: existingUser.private_member, role: existingUser.role},
             process.env.JWT_ACCESS_SECRET!, 
             {expiresIn:"15m"}
         );

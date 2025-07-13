@@ -152,7 +152,7 @@ export const createAccount = async(req: Request, res: Response): Promise<void>=>
     
             // after a successfull signIn keep the user logged in
             const accessToken = jwt.sign( // form access token
-                {_id: newUser._id, username: newUser.username, email, private_member: newUser.private_member },
+                {_id: newUser._id, username: newUser.username, email, private_member: newUser.private_member, role: newUser.role },
                 process.env.JWT_ACCESS_SECRET!,
                 { expiresIn: "15m" }
             );
