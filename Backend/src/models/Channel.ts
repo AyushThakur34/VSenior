@@ -3,7 +3,8 @@ import mongoose, { Types } from "mongoose";
 const ChannelSchema = new mongoose.Schema({
     channel_name: {
         type: String,
-        required: true
+        required: true,
+        unique: true
     },
     type: {
         type: String,
