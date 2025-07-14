@@ -31,14 +31,6 @@ export const createChannel = async(req: AuthRequest, res: Response): Promise<voi
             return ;
         }
 
-        if(type !== "open" && type != "college") {
-            res.status(400).json({
-                success: false,
-                message: "Invalid Channel Type"
-            });
-            return ;
-        }
-
         await Channel.create({
             channel_name: name,
             type

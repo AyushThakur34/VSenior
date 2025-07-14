@@ -15,25 +15,29 @@ import { boostrapAdmin } from "../controllers/boostrspAdmin.ts";
 import { adminOnly } from "../middleware/adminOnly.ts";
 import { promoteUser, demoteAdmin, getAllAdmins } from "../controllers/admin.ts";
 import { createChannel, editChannel, deleteChannel } from "../controllers/channel.ts";
+import { deleteAccount } from "../controllers/deleteAccount.ts";
 
 const route = express.Router();
 
+// admin only routes
 // admin 
-route.post("/bootstrap-admin", boostrapAdmin);
-route.put("user-promote", verifyAccessToken, adminOnly, promoteUser);
-route.put("admin-demote", verifyAccessToken, adminOnly, demoteAdmin);
-route.get("admins", verifyAccessToken, adminOnly, getAllAdmins);
+route.post("/bootstrap-admin", boostrapAdmin); 
+route.put("/user-promote", verifyAccessToken, adminOnly, promoteUser); 
+route.put("/admin-demote", verifyAccessToken, adminOnly, demoteAdmin); 
+route.get("/admins", verifyAccessToken, adminOnly, getAllAdmins); 
 
 // channel
-route.post("/channel-create", verifyAccessToken, adminOnly, createChannel);
-route.post("/channel-edit", verifyAccessToken, adminOnly, editChannel);
-route.post("/channel-delete", verifyAccessToken, adminOnly, deleteChannel);
+route.post("/channel-create", verifyAccessToken, adminOnly, createChannel); 
+route.put("/channel-edit", verifyAccessToken, adminOnly, editChannel); 
+route.delete("/channel-delete", verifyAccessToken, adminOnly, deleteChannel);
 
-// access
-route.post("/signup", rateLimiterLow, signup);
-route.post("/create-account", rateLimiterLow, createAccount);
-route.post("/login", rateLimiterLow, login);
-route.post("/refresh-token", rateLimiterLow, refreshToken);
+// user routes
+// user
+route.post("/signup", rateLimiterLow, signup); 
+route.post("/create-account", rateLimiterLow, createAccount); 
+route.post("/login", rateLimiterLow, login); 
+route.post("/refresh-token", rateLimiterLow, refreshToken); 
+route.delete("/delete-account", deleteAccount);
 
 // post
 route.post("/post-create", rateLimiterLow, verifyAccessToken, createPost);
@@ -55,6 +59,5 @@ route.delete("/comment-delete",rateLimiterHigh, verifyAccessToken, deleteComment
 route.post("/reply-create",rateLimiterLow, verifyAccessToken, createReply);
 route.put("/reply-edit", rateLimiterModerate, verifyAccessToken, editReply);
 route.delete("/reply-delete",rateLimiterHigh, verifyAccessToken, deleteReply);
-
 
 export default route;   
