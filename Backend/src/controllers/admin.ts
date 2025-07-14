@@ -1,6 +1,6 @@
 import User from "../models/User.ts";
 import { Response } from "express";
-import AuthRequest from "../utils/authRequest";
+import AuthRequest from "../utils/authRequest.ts";
 import AdminLogs from "../models/AdminLogs.ts";
 import dotenv from "dotenv";
 dotenv.config();
