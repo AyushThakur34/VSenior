@@ -16,6 +16,7 @@ import { adminOnly } from "../middleware/adminOnly.ts";
 import { promoteUser, demoteAdmin, getAllAdmins } from "../controllers/admin.ts";
 import { createChannel, editChannel, deleteChannel } from "../controllers/channel.ts";
 import { deleteAccount } from "../controllers/deleteAccount.ts";
+import { reload } from "../controllers/reload.ts";
 
 const route = express.Router();
 
@@ -33,6 +34,8 @@ route.delete("/channel-delete", verifyAccessToken, adminOnly, deleteChannel);
 
 // user routes
 // user
+route.get("/reload", reload);
+
 route.post("/signup", rateLimiterLow, signup); 
 route.post("/create-account", rateLimiterLow, createAccount); 
 route.post("/login", rateLimiterLow, login); 

@@ -9,9 +9,10 @@ dotenv.config();
 
 export const login = async(req: Request, res: Response): Promise<void>=> {
     try {
+        const identifier = req.body.identifier?.toLowerCase().trim();
         const password = req.body.password?.trim(); 
-        const email = req.body.email?.toLowerCase().trim();
-        if(!email || !password) { // handle missing fields
+
+        if(!identifier || !password) { // handle missing fields
             res.status(400).json({
                 success: false,
                 message: "Email and Password Both are Required"
@@ -19,23 +20,24 @@ export const login = async(req: Request, res: Response): Promise<void>=> {
             return ;
         }
 
-        if(!validator.isEmail(email)) { // validate email format
+        let existingUser;
+        if(!validator.isEmail(identifier)) { // validate email format
+            const username = identifier;
+            existingUser = await User.findOne({username: username}).select("+password");
+        }
+        else {
+            const email = identifier;
+            existingUser = await User.findOne({email: email}).select("+password"); // find existing user
+        }
+
+        if(!existingUser) { // handle the case if user does not exist
             res.status(400).json({
                 success: false,
-                message: "Enter a Valid Email"
+                message: "User Not Registered"
             });
             return ;
         }
 
-        const existingUser = await User.findOne({email: email}).select("+password"); // find existing user
-        if(!existingUser) { // handle the case if user does not exist
-            res.status(400).json({
-                success: false,
-                message: "Email Not Registered"
-            });
-            return ;
-        }
-        
         const hashedPassword: string = existingUser.password as string; // fetch the stored hashed password from db
         
         const match = await bcrypt.compare(password, hashedPassword); // match the given password with hashed password
@@ -48,7 +50,7 @@ export const login = async(req: Request, res: Response): Promise<void>=> {
         }
 
         const accessToken = jwt.sign( // sign an access token
-            {_id: existingUser._id, username: existingUser.username, email, private_member: existingUser.private_member, role: existingUser.role},
+            {_id: existingUser._id, username: existingUser.username, email: existingUser.email, private_member: existingUser.private_member, role: existingUser.role},
             process.env.JWT_ACCESS_SECRET!, 
             {expiresIn:"15m"}
         );
@@ -82,7 +84,6 @@ export const login = async(req: Request, res: Response): Promise<void>=> {
 
         const userToSend = existingUser.toObject() as any;
         delete userToSend.password;
-        delete userToSend._id;
         res.status(200).json({
             success: true,
             message: "Login Successful",
