@@ -1,32 +1,42 @@
-import AuthRequest from "../utils/authRequest.ts";
-import { Response } from "express";
+import { Request, Response } from "express";
 import dotenv from "dotenv"
-import User from "../models/User.ts";
+import jwt from "jsonwebtoken";
+import AuthRequest from "../utils/authRequest.ts";
 dotenv.config();
 
-export const reload = async(req: AuthRequest, res:Response):Promise<void> => {
+export const reload = async(req: Request, res:Response):Promise<void> => {
     try {
-        const userID = req.user?._id;
-        if(!userID) {
+        const token = req.cookies.accessToken;
+        if(!token) {
             res.status(401).json({
                 success: false,
-                message: "Not Authenticated"
-            });
-            return ;
-        }
-
-        const user = await User.findById(userID).lean();
-        if(!user) {
-            res.status(404).json({
-                success: false,
-                message: "User Not Found"
+                message: "Access Token Missing"
             })
             return ;
         }
 
+        const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET!);
+        if(!decoded) {
+            res.status(401).json({
+                success: false,
+                message: "Access Token Invalid"
+            })
+            return ;
+        }
+
+        const existingUser = decoded as AuthRequest["user"];
+        const user = {
+            _id: existingUser?._id,
+            username: existingUser?.username,
+            email: existingUser?.email,
+            private_member: existingUser?.private_member,
+            role: existingUser?.role
+        };
+
         res.status(200).json({
             success: true,
-            user: user
+            message: "Access Granted",
+            user
         })
 
     } catch (err) {

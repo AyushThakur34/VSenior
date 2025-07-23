@@ -17,6 +17,7 @@ import { promoteUser, demoteAdmin, getAllAdmins } from "../controllers/admin.ts"
 import { createChannel, editChannel, deleteChannel } from "../controllers/channel.ts";
 import { deleteAccount } from "../controllers/deleteAccount.ts";
 import { reload } from "../controllers/reload.ts";
+import { logout } from "../controllers/logout.ts";
 
 const route = express.Router();
 
@@ -39,7 +40,8 @@ route.get("/reload", reload);
 route.post("/signup", rateLimiterLow, signup); 
 route.post("/create-account", rateLimiterLow, createAccount); 
 route.post("/login", rateLimiterLow, login); 
-route.post("/refresh-token", rateLimiterLow, refreshToken); 
+route.post(".logout", rateLimiterLow, logout)
+route.put("/refresh-token", rateLimiterLow, refreshToken); 
 route.delete("/delete-account", deleteAccount);
 
 // post

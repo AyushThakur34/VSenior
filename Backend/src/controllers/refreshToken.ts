@@ -7,35 +7,17 @@ dotenv.config();
 
 export const refreshToken = async(req: Request, res: Response): Promise<void>=> {
     try {
-        const { user, token } = req.body; // destructure userID and token from req
-        if(!user || !token) { // handle the case where userID or Token is missing
+        const token = req.cookies.refreshToken;
+        if(!token) { // handle the case where userID or Token is missing
             res.status(400).json({
                 success: false,
-                message: "UserID and Token needded"
+                message: "Refresh Token Missing"
             });
             return ;
         }
-
-        const existingUser = await User.findById(user).lean(); // find existing user having this userID
-        if(!existingUser) { // handle the case if no such user exists
-            res.status(400).json({
-                success: false,
-                message: "User Does Not Exist"
-            });
-            return ;
-        }
-
-        const oldToken = await RefreshToken.findOne({ userID: user }); // fetch old token from database assigned to that user
+        
+        const oldToken = await RefreshToken.findOne({token: token}); // fetch old token from database assigned to that user
         if(!oldToken) { // handle the case if no such token is assigned 
-            res.status(401).json({
-                success: false,
-                message: "Unauthorized"
-            });
-            return ;
-        }
-
-        const match = token === oldToken.token; // match the req token and the one stored in db
-        if(!match) { // unauthorized if unmatched
             res.status(401).json({
                 success: false,
                 message: "Unauthorized"
@@ -49,6 +31,15 @@ export const refreshToken = async(req: Request, res: Response): Promise<void>=> 
             res.status(401).json({
                 success: false,
                 message: "Token Verification Failed"
+            });
+            return ;
+        }
+
+        const existingUser = await User.findById(token.userID);
+        if(!existingUser) {
+            res.status(404).json({
+                success: false,
+                message: "User Not Found"
             });
             return ;
         }
@@ -76,9 +67,18 @@ export const refreshToken = async(req: Request, res: Response): Promise<void>=> 
             maxAge: 15 * 60 * 1000
         });
 
+        const user = {
+            _id: existingUser._id,
+            username: existingUser.username,
+            email: existingUser.email,
+            private_member: existingUser.private_member,
+            role: existingUser.role
+        };
+
         res.status(200).json({
             success: true,
-            message: "Token Cycle Completed"
+            message: "Token Cycle Completed",
+            user
         });
     } catch(err) {
         console.log("[Token Refreshing Error]:", err);

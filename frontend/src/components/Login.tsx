@@ -2,7 +2,7 @@ import { useDispatch } from "react-redux";
 import { AppDispatch, RootState } from "../store/storeSetup";
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import { api } from "../utils/api";
 import { loginSuccess } from "../store/authSlice";
 import { useSelector } from "react-redux";
 
@@ -36,12 +36,13 @@ const Login: React.FC = () => {
         setError(null);
 
         try {
-            const res = await axios.post("http://localhost:4000/api/v1/login", formData, {withCredentials: true});
+            const res = await api.post("/login", formData);
             const { user } = res.data;
             dispatch(loginSuccess(user));
             navigate("/");
         } catch(err: any) {
-            setError("Invalid Identifier or Password");
+            const message = err.response?.data?.message;
+            setError(message || "Login Failed");
         }
     };
 

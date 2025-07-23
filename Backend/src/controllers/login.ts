@@ -15,7 +15,7 @@ export const login = async(req: Request, res: Response): Promise<void>=> {
         if(!identifier || !password) { // handle missing fields
             res.status(400).json({
                 success: false,
-                message: "Email and Password Both are Required"
+                message: "Identifier and Password Both are Required"
             });
             return ;
         }
